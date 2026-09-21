@@ -14,6 +14,7 @@ Il progetto genera le schede terapia in PDF per Villa Silenzi e offre un editor 
 | `genera_schede.py` | generatore dei PDF (riga di comando e libreria, usata anche da `editor.py`) |
 | `editor.py` | server locale (solo `127.0.0.1`): API su `utenti.json` e generazione PDF |
 | `editor.html` | interfaccia dell'editor (un solo file, senza dipendenze esterne) |
+| `avvia_editor.bat` | avvio su Windows (CRLF obbligatorio, vedi `.gitattributes`); non testabile su Linux |
 | `assets/logo.jpeg` | logo stampato sulle schede |
 | `utenti.json.template` | esempio con dati inventati |
 | `utenti.json` | dati reali, **mai versionati** |
