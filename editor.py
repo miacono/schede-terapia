@@ -43,6 +43,7 @@ HTML = BASE / "editor.html"
 MAX_BODY = 5 * 1024 * 1024
 MAX_GIORNI = 62
 GIORNI_BACKUP = 30
+CARTELLA_BACKUP = "backup"  # sottocartella accanto al file JSON
 
 
 def valida(utenti):
@@ -98,10 +99,14 @@ def completa(u):
     return u
 
 
+def cartella_backup(json_path):
+    return json_path.parent / CARTELLA_BACKUP
+
+
 def pulisci_backup(json_path, giorni=GIORNI_BACKUP):
     """Elimina i backup più vecchi di `giorni`. L'età si legge dal timestamp nel nome del file."""
     limite = datetime.now() - timedelta(days=giorni)
-    for f in json_path.parent.glob(f"{json_path.stem}_*.json.bak"):
+    for f in cartella_backup(json_path).glob(f"{json_path.stem}_*.json.bak"):
         try:
             quando = datetime.strptime(f.name[len(json_path.stem) + 1:-len(".json.bak")], "%Y-%m-%dT%H:%M:%S")
         except ValueError:
@@ -181,13 +186,15 @@ class Handler(BaseHTTPRequestHandler):
             backup = None
             if self.json_path.exists():
                 ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-                backup = self.json_path.with_name(f"{self.json_path.stem}_{ts}.json.bak")
+                cartella = cartella_backup(self.json_path)
+                cartella.mkdir(exist_ok=True)
+                backup = cartella / f"{self.json_path.stem}_{ts}.json.bak"
                 shutil.copy2(self.json_path, backup)
                 pulisci_backup(self.json_path)
             tmp = self.json_path.with_suffix(".json.tmp")
             tmp.write_text(json.dumps(utenti, ensure_ascii=False, indent=2), encoding="utf-8")
             os.replace(tmp, self.json_path)
-            self._send(200, {"ok": True, "pazienti": len(utenti), "backup": backup.name if backup else None})
+            self._send(200, {"ok": True, "pazienti": len(utenti), "backup": f"{CARTELLA_BACKUP}/{backup.name}" if backup else None})
         except (ValueError, json.JSONDecodeError) as e:
             self._err(400, str(e))
 

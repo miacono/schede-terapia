@@ -52,7 +52,7 @@ Dalla pagina si può:
 - **salvare** le modifiche in `utenti.json`;
 - **generare il PDF** scegliendo pazienti e date (include anche le modifiche non ancora salvate).
 
-Ad ogni salvataggio il file corrente viene copiato in `utenti_AAAA-MM-GGTHH:MM:SS.json.bak` (per esempio `utenti_2026-09-21T21:58:00.json.bak`). I backup più vecchi di 30 giorni vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `editor.py`).
+Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` come `utenti_AAAA-MM-GGTHH:MM:SS.json.bak` (per esempio `backup/utenti_2026-09-21T21:58:00.json.bak`); la cartella viene creata se manca. I backup più vecchi di 30 giorni vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `editor.py`).
 
 Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` diverso da localhost: i dati non escono dal computer.
 
@@ -119,6 +119,7 @@ editor.html             interfaccia web dell'editor
 assets/logo.jpeg        logo stampato sulle schede
 utenti.json.template    esempio di dati (inventati)
 utenti.json             dati reali (ignorato da git)
+backup/                 copie di sicurezza di utenti.json (contenuto ignorato da git)
 requirements.txt        dipendenze Python
 ```
 

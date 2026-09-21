@@ -1,6 +1,8 @@
 # Dati dei pazienti (non versionare mai)
 utenti.json
 utenti_*.json.bak
+backup/*
+!backup/.gitkeep
 utenti.json.tmp
 sorgenti/
 *SCHEDA TERAPIA*.pdf
