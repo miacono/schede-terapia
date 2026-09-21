@@ -46,6 +46,9 @@ TITOLO = "SERVIZIO RESIDENZIALE VILLA SILENZI"
 W, H = A4
 X0, X1 = 80, 540  # bordi sinistro/destro delle tabelle
 THICK, THIN = 1.6, 0.6
+# Separatori interni delle colonne FARMACO | Q.TA' | OPERATORE | UTENTE, uguali su entrambe le facciate.
+COLONNE = (210, 256, 400)
+X_ORE = 165  # nel retro la colonna FARMACO si divide in FARMACO | ORE
 
 # Fasce sempre stampate (anche vuote, da compilare a mano) con righe minime e ordine.
 STANDARD = {
@@ -145,7 +148,7 @@ def tabella(c, x0, x1, ytop, righe, h, colonne, celle=None, spessa=True):
 def pagina_fronte(c, u, data):
     y = intestazione(c, u["paziente"], data)
     y -= 20
-    cols = (210, 256, 400)
+    cols = COLONNE
     xs = (X0,) + cols + (X1,)
     for i, lab in enumerate(("FARMACO", "Q.TA'", "OPERATORE", "UTENTE")):
         testo(c, (xs[i] + xs[i + 1]) / 2, y - 6, lab, 7, "Helvetica-Oblique", "center")
@@ -193,8 +196,8 @@ def pagina_retro(c, u, data):
     y = tabella(c, X0 - 8, X1, y - 14, n, 18.5, (), [[b] for b in u["al_bisogno"]])
 
     y -= 45
-    cols = (227, 273, 321, 410)
-    xs = [X0 - 8] + list(cols) + [X1]
+    cols = (X_ORE,) + COLONNE
+    xs = (X0 - 8,) + cols + (X1,)
     for i, lab in enumerate(("FARMACO", "ORE", "Q.TA'", "OPERATORE", "UTENTE")):
         testo(c, (xs[i] + xs[i + 1]) / 2, y, lab, 7, "Helvetica-Oblique", "center")
     tabella(c, X0 - 8, X1, y - 6, 9, 19.5, cols)
