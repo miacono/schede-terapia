@@ -84,6 +84,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <h1>Schede terapia · Villa Silenzi</h1>
   <span id="stato">Caricamento…</span>
   <button id="salva" class="primario" disabled>Salva modifiche</button>
+  <button id="esci" title="Chiude l'editor">Esci</button>
 </header>
 
 <main>
@@ -190,6 +191,17 @@ $("salva").addEventListener("click", async () => {
     $("stato").textContent = "Non salvato: " + e.message;
     $("stato").className = "sporco";
   }
+});
+
+// ---------- uscita
+$("esci").addEventListener("click", async () => {
+  if (sporco && !confirm("Ci sono modifiche non salvate. Uscire senza salvare?")) return;
+  if (!sporco && !confirm("Chiudere l'editor?")) return;
+  sporco = false; // niente avviso del browser alla chiusura
+  try { await api("/api/esci", { method: "POST" }); } catch (e) { /* il server può chiudersi prima di rispondere */ }
+  document.body.replaceChildren(h("div", { class: "vuoto-pagina" },
+    h("h2", {}, "Editor chiuso"), h("p", {}, "Puoi chiudere questa scheda.")));
+  window.close(); // funziona solo se la scheda è stata aperta dal programma
 });
 
 // ---------- lista pazienti

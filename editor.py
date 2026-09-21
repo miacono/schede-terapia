@@ -35,6 +35,7 @@ import webbrowser
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlparse
 
 import genera_schede
 
@@ -156,6 +157,11 @@ class Handler(BaseHTTPRequestHandler):
         if not self._host_ok():
             self._err(403, "host non consentito")
             return False
+        # un sito esterno non deve poter comandare il server dal browser dell'utente
+        origin = self.headers.get("Origin")
+        if origin and urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
+            self._err(403, "origine non consentita")
+            return False
         return True
 
     # -- rotte
@@ -202,6 +208,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._guard():
             return
+        if self.path == "/api/esci":
+            self._send(200, {"ok": True})
+            # shutdown() blocca finché serve_forever() non termina: va chiamato da un altro thread
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
         if self.path != "/api/pdf":
             return self._err(404, "non trovato")
         try:
@@ -239,12 +250,15 @@ def main():
     Handler.json_path = Path(a.json).resolve()
     server = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
     url = f"http://127.0.0.1:{a.port}"
-    print(f"Editor attivo su {url}  (Ctrl+C per uscire)\nDati: {Handler.json_path}")
+    print(f"Editor attivo su {url}  (Ctrl+C o pulsante Esci)\nDati: {Handler.json_path}")
     if not a.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
         print("\nChiuso.")
 
 
