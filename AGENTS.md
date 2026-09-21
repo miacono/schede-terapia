@@ -3,6 +3,10 @@
 Indicazioni per gli agenti di codifica (e per chi contribuisce) su questo repository.
 Il progetto genera le schede terapia in PDF per Villa Silenzi e offre un editor web locale per i dati. Vedi `README.md` per l'uso.
 
+> ## ⛔ Dati personali e sensibili: divieto assoluto
+>
+> Questo progetto tratta **dati sanitari di persone reali** (categoria particolare di dati personali, art. 9 GDPR). **Per nessuna ragione** dati veri, **completi o parziali**, possono comparire nella documentazione, negli esempi, nei commenti, nei test, nei messaggi di commit o in qualunque cosa venga **committata o pubblicata sul repository online**. Nessuna eccezione, nemmeno "temporanea", "solo per provare" o "già anonimizzata a metà". Regole complete nella sezione [Dati personali e sensibili](#dati-personali-e-sensibili).
+
 ## Panoramica
 
 | File | Ruolo |
@@ -28,13 +32,62 @@ python3 -m py_compile genera_schede.py editor.py
 
 Non ci sono test automatici: si verifica generando un PDF dal template e guardandolo (per esempio con `pdftoppm -r 72 -png`).
 
-## Privacy e dati (regole tassative)
+## Dati personali e sensibili
 
-- `utenti.json` contiene dati sanitari di persone reali. Non va mai committato, incollato in un messaggio di commit, in una issue o in un esempio.
-- Negli esempi, nella documentazione, nei messaggi di commit e nei test usa **solo dati inventati** (come quelli in `utenti.json.template`: `ROSSI MARIO`, `VERDI ANNA`, `Farmaco A 10 mg`…). Mai nomi di pazienti, medici o SERD reali.
-- Prova le funzioni che scrivono (salvataggi, backup, pulizie) su una **copia** dei dati (`--json /tmp/.../utenti.json`), non su `utenti.json`.
-- `sorgenti/`, i PDF generati e i backup sono in `.gitignore`. Se un dato reale finisce in un commit già pubblicato, la cronologia va riscritta (chiedi prima conferma al proprietario: è un force-push).
-- Il server dell'editor deve restare legato a `127.0.0.1` e continuare a rifiutare `Host` diversi da localhost.
+**Regola:** nessun dato reale — completo **o parziale** — esce dalla macchina locale né entra nel repository. Vale per chiunque scriva qui: persone e agenti.
+
+### Cosa conta come dato reale
+
+Qualunque informazione riferibile a una persona reale, anche se incompleta o "mascherata":
+
+- pazienti: nome, cognome, **solo il cognome o solo il nome**, iniziali, soprannomi, date di nascita, codici, numeri di protocollo;
+- terapie: farmaci, dosaggi, orari, note e terapie al bisogno **di un paziente reale**, anche senza il nome (uno schema terapeutico può identificare);
+- operatori sanitari e servizi: nomi di medici, psichiatri, SERD e sedi collegati a pazienti reali;
+- contenuto di `utenti.json`, di `sorgenti/`, dei PDF generati, dei backup e di qualunque loro estratto, screenshot o riga di log.
+
+### Dove è vietato
+
+Documentazione (`README.md`, `AGENTS.md`, `CLAUDE.md`), esempi e docstring, **commenti nel codice**, test e fixture, `utenti.json.template`, messaggi di commit, nomi di branch e tag, issue e pull request, immagini e PDF di esempio, output incollati in un commit o in una discussione pubblica.
+
+### Cosa fare invece
+
+- Usa **solo dati inventati e palesemente fittizi**, come in `utenti.json.template`: `ROSSI MARIO`, `VERDI ANNA`, `Serd Esempio`, `Farmaco A 10 mg`. Non usare cognomi veri "cambiando una lettera" né combinazioni prese dai dati reali.
+- Prova tutto ciò che scrive (salvataggi, backup, pulizie) su una **copia** dei dati (`--json /tmp/.../utenti.json`), mai su `utenti.json`.
+- Se ti serve un caso realistico, costruiscilo da zero nel template; non copiarlo da un paziente.
+- Nelle risposte, nei log e nei messaggi d'errore che scrivi, non riportare dati reali che non servono.
+
+### Prima di ogni commit
+
+1. `git status` e `git diff --cached`: controlla riga per riga cosa stai per pubblicare.
+2. Cerca i nomi presenti in `utenti.json` (cognomi e nomi, ignorando le parole troppo comuni) nel diff in coda; un riscontro è un blocco:
+
+   ```bash
+   python3 - <<'EOF'
+   import json, re, subprocess
+   parole = {w for u in json.load(open("utenti.json"))
+             for w in re.split(r"[\s']+", u["paziente"]) if len(w) > 3}
+   diff = subprocess.run(["git", "diff", "--cached"], capture_output=True, text=True).stdout
+   trovate = sorted(w for w in parole if re.search(rf"\b{re.escape(w)}\b", diff, re.I))
+   print("ATTENZIONE, possibili dati reali:", trovate) if trovate else print("nessun riscontro")
+   EOF
+   ```
+
+   (Può dare falsi positivi su parole comuni: verifica a mano, ma non ignorare i riscontri.)
+3. Aggiungi i file per nome, mai `git add -A` (vedi *Commit atomici*).
+
+### Protezioni già presenti
+
+`utenti.json`, i suoi backup (`backup/*`), `sorgenti/`, i PDF delle schede e `venv/` sono in `.gitignore`: non toglierli e non forzare l'aggiunta con `git add -f`. Non aggirare `.gitignore`, non spostare i dati reali in cartelle tracciate.
+
+### Se un dato reale finisce nel repository
+
+1. **Fermati** e avvisa subito il proprietario, indicando file e commit.
+2. Non basta un nuovo commit che lo toglie: resta nella cronologia. Rimuoverlo richiede di riscrivere la cronologia e fare un force-push, azione distruttiva da fare **solo con l'esplicita autorizzazione del proprietario**.
+3. Ricorda che GitHub può conservare i commit raggiungibili per hash, e che cloni e fork esistenti mantengono la vecchia versione: valuta con il proprietario la richiesta di rimozione a GitHub.
+
+### Sicurezza del server locale
+
+Il server dell'editor deve restare legato a `127.0.0.1` e continuare a rifiutare richieste con `Host` diverso da localhost: i dati non devono uscire dal computer.
 
 ## Convenzioni di codice
 
