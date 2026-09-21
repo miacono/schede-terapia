@@ -120,7 +120,8 @@ class Handler(BaseHTTPRequestHandler):
     port = 8000
 
     def log_message(self, fmt, *args):
-        sys.stderr.write("%s\n" % (fmt % args))
+        if sys.stderr:  # con pythonw.exe (Windows, senza console) stderr vale None
+            sys.stderr.write("%s\n" % (fmt % args))
 
     # -- utilità
     def _host_ok(self):
