@@ -1,0 +1,2 @@
+# I file batch di Windows richiedono fine riga CRLF (altrimenti goto/etichette possono rompersi)
+*.bat text eol=crlf
