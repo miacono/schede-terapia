@@ -144,11 +144,11 @@ def tabella(c, x0, x1, ytop, righe, h, colonne, celle=None, spessa=True):
 
 def pagina_fronte(c, u, data):
     y = intestazione(c, u["paziente"], data)
-    testo(c, 155, y - 12, "FARMACO", 7, "Helvetica-Oblique", "center")
     y -= 20
     cols = (210, 256, 400)
-    for x, lab in zip((233, 328, 470), ("Q.TA'", "OPERATORE", "UTENTE")):
-        testo(c, x, y - 6, lab, 7, "Helvetica-Oblique", "center")
+    xs = (X0,) + cols + (X1,)
+    for i, lab in enumerate(("FARMACO", "Q.TA'", "OPERATORE", "UTENTE")):
+        testo(c, (xs[i] + xs[i + 1]) / 2, y - 6, lab, 7, "Helvetica-Oblique", "center")
     y -= 12
 
     voci = blocchi(u)
