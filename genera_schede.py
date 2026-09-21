@@ -47,7 +47,7 @@ W, H = A4
 X0, X1 = 80, 540  # bordi sinistro/destro delle tabelle
 THICK, THIN = 1.6, 0.6
 # Separatori interni delle colonne FARMACO | Q.TA' | OPERATORE | UTENTE, uguali su entrambe le facciate.
-COLONNE = (210, 256, 400)
+COLONNE = (210, 256, 398)  # OPERATORE e UTENTE larghe uguale (142 pt)
 X_ORE = 165  # nel retro la colonna FARMACO si divide in FARMACO | ORE
 
 # Fasce sempre stampate (anche vuote, da compilare a mano) con righe minime e ordine.
