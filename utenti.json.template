@@ -1,0 +1,63 @@
+[
+  {
+    "paziente": "ROSSI MARIO",
+    "serd_inviante": "Serd Esempio",
+    "medico_serd": "Dott. Bianchi",
+    "psichiatra_ct": null,
+    "somministrazioni": [
+      {
+        "nome": "Mattino",
+        "orario": null,
+        "farmaci": [
+          { "farmaco": "Farmaco A 10 mg", "quantita": "1 cp" },
+          { "farmaco": "Farmaco B 500 mg", "quantita": "1/2 cp" }
+        ]
+      },
+      {
+        "nome": "16:00",
+        "orario": "16:00",
+        "farmaci": [
+          { "farmaco": "Farmaco C gocce", "quantita": "20 gtt" }
+        ]
+      },
+      {
+        "nome": "Cena",
+        "orario": null,
+        "farmaci": [
+          { "farmaco": "Farmaco A 10 mg", "quantita": "1 cp" }
+        ]
+      }
+    ],
+    "note": [
+      "Nota di esempio: terapia da assumere a stomaco pieno"
+    ],
+    "al_bisogno": [
+      "Farmaco D 600: 1 cp max 3v/dì se dolore"
+    ]
+  },
+  {
+    "paziente": "VERDI ANNA",
+    "serd_inviante": "Serd Immaginario",
+    "medico_serd": "Dott.ssa Neri",
+    "psichiatra_ct": "Dott. Gialli",
+    "somministrazioni": [
+      {
+        "nome": "Mattino",
+        "orario": null,
+        "farmaci": [
+          { "farmaco": "Farmaco E 25 mg", "quantita": "1 cp" }
+        ]
+      },
+      {
+        "nome": "Notte",
+        "orario": null,
+        "farmaci": [
+          { "farmaco": "Farmaco F 5 mg", "quantita": "1 cp" },
+          { "farmaco": "Farmaco G gocce", "quantita": "10 gtt" }
+        ]
+      }
+    ],
+    "note": [],
+    "al_bisogno": []
+  }
+]

@@ -1,0 +1,353 @@
+<!doctype html>
+<!--
+Schede terapia - gestione e stampa delle schede terapia di Villa Silenzi
+Copyright (C) 2026 Matteo Iacono
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schede terapia</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --panel: #fff; --ink: #1d2733; --muted: #66727f; --line: #d5dbe3;
+    --accent: #1f4fd8; --accent-ink: #fff; --danger: #c62828; --ok: #1b7f3b; --warn: #b26a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14181d; --panel: #1d232b; --ink: #e8edf2; --muted: #93a0ad; --line: #34404c;
+            --accent: #6d92ff; --accent-ink: #0d1626; --danger: #ff6b6b; --ok: #58c27a; --warn: #f0b04d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel);
+           border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  #stato { color: var(--muted); font-size: 13px; }
+  #stato.sporco { color: var(--warn); font-weight: 600; }
+  #stato.ok { color: var(--ok); }
+  main { display: grid; grid-template-columns: 260px 1fr; gap: 16px; padding: 16px; max-width: 1200px; margin: 0 auto; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  button { font: inherit; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line);
+           background: var(--panel); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primario { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.pericolo { color: var(--danger); }
+  button.icona { padding: 4px 8px; min-width: 30px; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type=text], input[type=date], input[type=search] { font: inherit; padding: 7px 9px; border: 1px solid var(--line);
+      border-radius: 7px; background: var(--bg); color: var(--ink); width: 100%; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  h3 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  #lista { max-height: 60vh; overflow: auto; margin: 10px 0; }
+  .paz { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
+  .paz:hover { background: var(--bg); }
+  .paz.sel { background: var(--accent); color: var(--accent-ink); }
+  .paz .nome { flex: 1; }
+  .griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .fascia { border: 1px solid var(--line); border-radius: 9px; padding: 10px; margin-bottom: 10px; }
+  .fascia-testa { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 8px; }
+  .fascia-testa > div { flex: 1; }
+  .fascia-testa > div.corto { flex: 0 0 110px; }
+  .riga { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .riga .farmaco { flex: 2; }
+  .riga .qta { flex: 1; }
+  .vuoto { color: var(--muted); font-style: italic; margin: 6px 0; }
+  .pdf-riga { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+  .pdf-riga > div { flex: 1; min-width: 140px; }
+  .selezione { max-height: 150px; overflow: auto; border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px;
+               columns: 2 200px; margin-bottom: 10px; }
+  .selezione label { color: var(--ink); font-size: 14px; margin: 2px 0; display: flex; gap: 6px; align-items: center; }
+  #msg { margin-top: 8px; min-height: 1.2em; font-size: 13px; }
+  #msg.err { color: var(--danger); }
+  #msg.ok { color: var(--ok); }
+  .vuoto-pagina { text-align: center; color: var(--muted); padding: 60px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Schede terapia · Villa Silenzi</h1>
+  <span id="stato">Caricamento…</span>
+  <button id="salva" class="primario" disabled>Salva modifiche</button>
+</header>
+
+<main>
+  <aside class="panel">
+    <h2>Pazienti</h2>
+    <input type="search" id="cerca" placeholder="Cerca…">
+    <div id="lista"></div>
+    <button id="nuovo" style="width:100%">+ Nuovo paziente</button>
+  </aside>
+
+  <section>
+    <div id="scheda" class="panel"></div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Genera PDF</h2>
+      <div class="pdf-riga">
+        <div><label for="d1">Data inizio</label><input type="date" id="d1"></div>
+        <div><label for="d2">Data fine (facoltativa)</label><input type="date" id="d2"></div>
+      </div>
+      <label>Pazienti da stampare</label>
+      <div style="margin-bottom:6px">
+        <button id="selTutti" class="icona">Tutti</button>
+        <button id="selNessuno" class="icona">Nessuno</button>
+        <button id="selCorrente" class="icona">Solo quello aperto</button>
+      </div>
+      <div class="selezione" id="selezione"></div>
+      <button id="genera" class="primario">Genera PDF</button>
+      <div id="msg"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+let dati = [];          // elenco pazienti in modifica
+let corrente = null;    // oggetto paziente aperto
+let sporco = false;
+const scelti = new Set(); // oggetti paziente selezionati per il PDF
+const FASCE = ["Mattino", "Pranzo", "Cena", "Notte"];
+
+const $ = (id) => document.getElementById(id);
+
+// crea elementi: h("div", {class:"x", onclick:fn}, figli...)
+function h(tag, attrs = {}, ...figli) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "value") el.value = v ?? "";
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const f of figli.flat()) el.append(f);
+  return el;
+}
+
+function segnaSporco() {
+  sporco = true;
+  $("salva").disabled = false;
+  $("stato").textContent = "Modifiche non salvate";
+  $("stato").className = "sporco";
+}
+window.addEventListener("beforeunload", (e) => { if (sporco) { e.preventDefault(); e.returnValue = ""; } });
+
+function messaggio(testo, tipo = "") { $("msg").textContent = testo; $("msg").className = tipo; }
+
+// ---------- rete
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) {
+    let m = r.statusText;
+    try { m = (await r.json()).errore || m; } catch (_) {}
+    throw new Error(m);
+  }
+  return r;
+}
+
+async function carica() {
+  try {
+    dati = await (await api("/api/utenti")).json();
+    $("stato").textContent = `${dati.length} pazienti caricati`;
+    $("stato").className = "";
+    corrente = dati[0] || null;
+    disegnaTutto();
+  } catch (e) {
+    $("stato").textContent = "Errore: " + e.message;
+  }
+}
+
+$("salva").addEventListener("click", async () => {
+  try {
+    const esito = await (await api("/api/utenti", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dati) })).json();
+    sporco = false;
+    $("salva").disabled = true;
+    $("stato").textContent = "Salvato ✔" + (esito.backup ? ` (backup: ${esito.backup})` : "");
+    $("stato").className = "ok";
+    // ricarica per avere i dati normalizzati dal server, mantenendo la selezione per nome
+    const nome = corrente && corrente.paziente;
+    const nomiScelti = new Set([...scelti].map((u) => u.paziente));
+    dati = await (await api("/api/utenti")).json();
+    corrente = dati.find((u) => u.paziente === nome) || dati[0] || null;
+    scelti.clear();
+    dati.filter((u) => nomiScelti.has(u.paziente)).forEach((u) => scelti.add(u));
+    disegnaTutto();
+  } catch (e) {
+    $("stato").textContent = "Non salvato: " + e.message;
+    $("stato").className = "sporco";
+  }
+});
+
+// ---------- lista pazienti
+function disegnaLista() {
+  const q = $("cerca").value.trim().toLowerCase();
+  const box = $("lista");
+  box.replaceChildren();
+  dati.filter((u) => u.paziente.toLowerCase().includes(q)).forEach((u) => {
+    box.append(h("div", { class: "paz" + (u === corrente ? " sel" : ""), onclick: () => { corrente = u; disegnaTutto(); } },
+      h("span", { class: "nome" }, u.paziente || "(senza nome)")));
+  });
+}
+$("cerca").addEventListener("input", disegnaLista);
+
+$("nuovo").addEventListener("click", () => {
+  const nome = prompt("Cognome e nome del nuovo paziente:");
+  if (!nome || !nome.trim()) return;
+  if (dati.some((u) => u.paziente.toLowerCase() === nome.trim().toLowerCase())) { alert("Esiste già un paziente con questo nome."); return; }
+  const u = { paziente: nome.trim().toUpperCase(), serd_inviante: "", medico_serd: "", psichiatra_ct: "",
+              somministrazioni: [], note: [], al_bisogno: [] };
+  dati.push(u);
+  dati.sort((a, b) => a.paziente.localeCompare(b.paziente, "it"));
+  corrente = u;
+  segnaSporco();
+  disegnaTutto();
+});
+
+// ---------- scheda paziente
+function campoTesto(etichetta, obj, chiave) {
+  return h("div", {}, h("label", {}, etichetta),
+    h("input", { type: "text", value: obj[chiave] || "", oninput: (e) => { obj[chiave] = e.target.value; segnaSporco(); } }));
+}
+
+// elenco di righe di testo semplice (note, al bisogno)
+function elencoTesto(arr, segnaposto) {
+  const box = h("div");
+  const disegna = () => {
+    box.replaceChildren();
+    if (!arr.length) box.append(h("div", { class: "vuoto" }, "Nessuna riga."));
+    arr.forEach((val, i) => {
+      box.append(h("div", { class: "riga" },
+        h("input", { type: "text", value: val, placeholder: segnaposto, oninput: (e) => { arr[i] = e.target.value; segnaSporco(); } }),
+        h("button", { class: "icona", title: "Su", disabled: i === 0, onclick: () => { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; segnaSporco(); disegna(); } }, "↑"),
+        h("button", { class: "icona", title: "Giù", disabled: i === arr.length - 1, onclick: () => { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; segnaSporco(); disegna(); } }, "↓"),
+        h("button", { class: "icona pericolo", title: "Elimina riga", onclick: () => { arr.splice(i, 1); segnaSporco(); disegna(); } }, "✕")));
+    });
+    box.append(h("button", { onclick: () => { arr.push(""); segnaSporco(); disegna(); box.querySelector(".riga:last-of-type input")?.focus(); } }, "+ Aggiungi riga"));
+  };
+  disegna();
+  return box;
+}
+
+function bloccoFascia(paz, s) {
+  const box = h("div", { class: "fascia" });
+  const disegna = () => {
+    box.replaceChildren(
+      h("div", { class: "fascia-testa" },
+        h("div", {}, h("label", {}, "Fascia"),
+          h("input", { type: "text", list: "fasce", value: s.nome, placeholder: "es. Mattino", oninput: (e) => { s.nome = e.target.value; segnaSporco(); } })),
+        h("div", { class: "corto" }, h("label", {}, "Orario (hh:mm)"),
+          h("input", { type: "text", value: s.orario || "", placeholder: "facoltativo", oninput: (e) => { s.orario = e.target.value.trim(); segnaSporco(); } })),
+        h("button", { class: "pericolo", onclick: () => {
+          if (confirm(`Eliminare la fascia "${s.nome}" con tutti i suoi farmaci?`)) {
+            paz.somministrazioni.splice(paz.somministrazioni.indexOf(s), 1); segnaSporco(); disegnaScheda();
+          } } }, "Elimina fascia")),
+      ...s.farmaci.map((f, i) => h("div", { class: "riga" },
+        h("input", { type: "text", class: "farmaco", value: f.farmaco, placeholder: "Farmaco", oninput: (e) => { f.farmaco = e.target.value; segnaSporco(); } }),
+        h("input", { type: "text", class: "qta", value: f.quantita || "", placeholder: "Quantità (es. 1 cp)", oninput: (e) => { f.quantita = e.target.value; segnaSporco(); } }),
+        h("button", { class: "icona", title: "Su", disabled: i === 0, onclick: () => { [s.farmaci[i - 1], s.farmaci[i]] = [s.farmaci[i], s.farmaci[i - 1]]; segnaSporco(); disegna(); } }, "↑"),
+        h("button", { class: "icona", title: "Giù", disabled: i === s.farmaci.length - 1, onclick: () => { [s.farmaci[i + 1], s.farmaci[i]] = [s.farmaci[i], s.farmaci[i + 1]]; segnaSporco(); disegna(); } }, "↓"),
+        h("button", { class: "icona pericolo", title: "Elimina farmaco", onclick: () => { s.farmaci.splice(i, 1); segnaSporco(); disegna(); } }, "✕"))),
+      s.farmaci.length ? "" : h("div", { class: "vuoto" }, "Nessun farmaco."),
+      h("button", { onclick: () => { s.farmaci.push({ farmaco: "", quantita: "" }); segnaSporco(); disegna(); box.querySelector(".riga:last-of-type .farmaco")?.focus(); } }, "+ Aggiungi farmaco"));
+  };
+  disegna();
+  return box;
+}
+
+const ORDINE = { mattino: 480, pranzo: 780, cena: 1140, notte: 1320 };
+function ordineFascia(s) {
+  if (s.orario && /^\d{1,2}:\d{2}$/.test(s.orario)) { const [a, b] = s.orario.split(":"); return +a * 60 + +b; }
+  return ORDINE[(s.nome || "").trim().toLowerCase()] ?? 720;
+}
+
+function disegnaScheda() {
+  const box = $("scheda");
+  box.replaceChildren();
+  const u = corrente;
+  if (!u) { box.append(h("div", { class: "vuoto-pagina" }, "Nessun paziente. Aggiungine uno dal pulsante a sinistra.")); return; }
+
+  box.append(
+    h("datalist", { id: "fasce" }, FASCE.map((f) => h("option", { value: f }))),
+    h("div", { style: "display:flex;gap:10px;align-items:flex-end" },
+      h("div", { style: "flex:1" }, campoTesto("Paziente", u, "paziente")),
+      h("button", { class: "pericolo", onclick: () => {
+        if (!confirm(`Eliminare il paziente ${u.paziente}?`)) return;
+        dati.splice(dati.indexOf(u), 1); scelti.delete(u); corrente = dati[0] || null; segnaSporco(); disegnaTutto();
+      } }, "Elimina paziente")),
+    h("h3", {}, "Servizi di riferimento"),
+    h("div", { class: "griglia" },
+      campoTesto("SERD inviante", u, "serd_inviante"),
+      campoTesto("Medico SERD", u, "medico_serd"),
+      campoTesto("Psichiatra CT", u, "psichiatra_ct")),
+    h("h3", {}, "Somministrazioni"),
+    h("p", { class: "vuoto", style: "margin-top:0" }, "Mattino, Pranzo, Cena e Notte vengono sempre stampati (anche vuoti). Le altre fasce, con l'orario, vengono aggiunte nel punto giusto."),
+    ...u.somministrazioni.map((s) => bloccoFascia(u, s)),
+    h("button", { onclick: () => {
+      u.somministrazioni.push({ nome: "", orario: "", farmaci: [{ farmaco: "", quantita: "" }] });
+      segnaSporco(); disegnaScheda();
+      const inp = $("scheda").querySelectorAll(".fascia"); inp[inp.length - 1].querySelector("input").focus();
+    } }, "+ Aggiungi fascia"),
+    h("h3", {}, "Note"),
+    elencoTesto(u.note, "Nota"),
+    h("h3", {}, "Terapia al bisogno"),
+    elencoTesto(u.al_bisogno, "es. Brufen 600: 1 cp max 3v/dì"));
+}
+
+// ---------- PDF
+function disegnaSelezione() {
+  const box = $("selezione");
+  box.replaceChildren();
+  dati.forEach((u) => box.append(h("label", {},
+    h("input", { type: "checkbox", checked: scelti.has(u) ? "" : null, onchange: (e) => { e.target.checked ? scelti.add(u) : scelti.delete(u); } }),
+    u.paziente)));
+}
+$("selTutti").onclick = () => { dati.forEach((u) => scelti.add(u)); disegnaSelezione(); };
+$("selNessuno").onclick = () => { scelti.clear(); disegnaSelezione(); };
+$("selCorrente").onclick = () => { scelti.clear(); if (corrente) scelti.add(corrente); disegnaSelezione(); };
+
+$("genera").addEventListener("click", async () => {
+  messaggio("");
+  const d1 = $("d1").value;
+  if (!d1) return messaggio("Inserisci la data di inizio.", "err");
+  const utenti = dati.filter((u) => scelti.has(u));
+  if (!utenti.length) return messaggio("Seleziona almeno un paziente.", "err");
+  $("genera").disabled = true;
+  messaggio("Generazione in corso…");
+  try {
+    const r = await api("/api/pdf", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ utenti, data_inizio: d1, data_fine: $("d2").value || null }) });
+    const blob = await r.blob();
+    const nome = (r.headers.get("Content-Disposition") || "").match(/filename="(.+?)"/)?.[1] || "schede_terapia.pdf";
+    const a = h("a", { href: URL.createObjectURL(blob), download: nome });
+    document.body.append(a); a.click(); a.remove();
+    const giorni = $("d2").value ? Math.round((new Date($("d2").value) - new Date(d1)) / 864e5) + 1 : 1;
+    messaggio(`Creato ${nome}: ${utenti.length} pazienti × ${giorni} giorni = ${utenti.length * giorni * 2} pagine.` +
+      (sporco ? " (Include le modifiche non ancora salvate.)" : ""), "ok");
+  } catch (e) {
+    messaggio("Errore: " + e.message, "err");
+  } finally {
+    $("genera").disabled = false;
+  }
+});
+
+function disegnaTutto() { disegnaLista(); disegnaScheda(); disegnaSelezione(); }
+
+$("d1").value = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+carica();
+</script>
+</body>
+</html>
