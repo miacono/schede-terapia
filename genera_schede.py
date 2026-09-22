@@ -124,6 +124,29 @@ def intestazione(c, paziente, data):
     return top - 70
 
 
+def spezza(c, s, larghezza, size, font="Helvetica"):
+    """Spezza `s` in righe che entrano in `larghezza` punti a `size`,
+    spezzando anche a metà una singola parola troppo lunga per starci."""
+    righe, corrente = [], ""
+    for parola in s.split(" "):
+        prova = f"{corrente} {parola}".strip()
+        if c.stringWidth(prova, font, size) <= larghezza:
+            corrente = prova
+            continue
+        if corrente:
+            righe.append(corrente)
+        while c.stringWidth(parola, font, size) > larghezza and len(parola) > 1:
+            taglio = len(parola)
+            while taglio > 1 and c.stringWidth(parola[:taglio], font, size) > larghezza:
+                taglio -= 1
+            righe.append(parola[:taglio])
+            parola = parola[taglio:]
+        corrente = parola
+    if corrente:
+        righe.append(corrente)
+    return righe
+
+
 def tabella(c, x0, x1, ytop, righe, h, colonne, celle=None, spessa=True):
     """Griglia di `righe` righe alte h; colonne = x dei separatori interni.
     celle = lista di righe, ciascuna lista di testi per colonna."""
@@ -140,8 +163,22 @@ def tabella(c, x0, x1, ytop, righe, h, colonne, celle=None, spessa=True):
         size = min(9.5, h - 6)
         for i, riga in enumerate(celle):
             for j, val in enumerate(riga):
-                if val:
+                if not val:
+                    continue
+                larghezza = xs[j + 1] - xs[j] - 8
+                if c.stringWidth(val, "Helvetica", size) <= larghezza:
                     testo(c, xs[j] + 4, ytop - i * h - h / 2 - size * 0.35, val, size)
+                    continue
+                # testo troppo largo per la colonna: va a capo, rimpicciolendo se serve
+                dim, righe_testo = size, spezza(c, val, larghezza, size)
+                while len(righe_testo) * dim > h - 2 and dim > 5.5:
+                    dim -= 0.5
+                    righe_testo = spezza(c, val, larghezza, dim)
+                passo = dim + 1
+                y = ytop - i * h - (h - len(righe_testo) * passo) / 2 - dim
+                for linea in righe_testo:
+                    testo(c, xs[j] + 4, y, linea, dim)
+                    y -= passo
     return ybot
 
 
