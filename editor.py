@@ -43,7 +43,7 @@ BASE = Path(__file__).resolve().parent
 HTML = BASE / "editor.html"
 MAX_BODY = 5 * 1024 * 1024
 MAX_GIORNI = 62
-GIORNI_BACKUP = 30
+GIORNI_BACKUP = 365
 CARTELLA_BACKUP = "backup"  # sottocartella accanto al file JSON
 
 

@@ -53,7 +53,7 @@ Dalla pagina si può:
 - **uscire** con il pulsante *Esci*, che spegne il server;
 - **generare il PDF** scegliendo pazienti e date (include anche le modifiche non ancora salvate).
 
-Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` come `utenti_AAAA-MM-GGTHH:MM:SS.json.bak` (per esempio `backup/utenti_2026-09-21T21:58:00.json.bak`); la cartella viene creata se manca. I backup più vecchi di 30 giorni vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `editor.py`).
+Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` come `utenti_AAAA-MM-GGTHH:MM:SS.json.bak` (per esempio `backup/utenti_2026-09-21T21:58:00.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `editor.py`).
 
 Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` diverso da localhost: i dati non escono dal computer.
 
