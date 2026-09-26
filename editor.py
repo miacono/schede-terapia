@@ -31,6 +31,7 @@ import os
 import shutil
 import sys
 import threading
+import time
 import webbrowser
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -115,7 +116,23 @@ def pulisci_backup(json_path, giorni=GIORNI_BACKUP):
         except ValueError:
             continue  # nome non riconosciuto: non toccare
         if quando < limite:
-            f.unlink()
+            try:
+                f.unlink()
+            except OSError:
+                pass  # su Windows un file aperto non si cancella: ci si riprova al prossimo salvataggio
+
+
+def sostituisci(tmp, dest, tentativi=10, attesa=0.1):
+    """os.replace con qualche nuovo tentativo: su Windows fallisce se `dest` è aperto
+    in quel momento da un altro programma (antivirus, sincronizzazione cloud, una lettura in corso)."""
+    for i in range(tentativi):
+        try:
+            os.replace(tmp, dest)
+            return
+        except PermissionError:
+            if i == tentativi - 1:
+                raise
+            time.sleep(attesa)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -195,6 +212,10 @@ class Handler(BaseHTTPRequestHandler):
             if errore:
                 return self._err(400, errore)
             utenti = [completa(u) for u in utenti]
+        except (ValueError, json.JSONDecodeError) as e:
+            return self._err(400, str(e))
+        tmp = self.json_path.with_suffix(".json.tmp")
+        try:
             backup = None
             if self.json_path.exists():
                 ts = datetime.now().strftime(FORMATO_BACKUP)
@@ -203,12 +224,15 @@ class Handler(BaseHTTPRequestHandler):
                 backup = cartella / f"{self.json_path.stem}_{ts}.json.bak"
                 shutil.copy2(self.json_path, backup)
                 pulisci_backup(self.json_path)
-            tmp = self.json_path.with_suffix(".json.tmp")
             tmp.write_text(json.dumps(utenti, ensure_ascii=False, indent=2), encoding="utf-8")
-            os.replace(tmp, self.json_path)
-            self._send(200, {"ok": True, "pazienti": len(utenti), "backup": f"{CARTELLA_BACKUP}/{backup.name}" if backup else None})
-        except (ValueError, json.JSONDecodeError) as e:
-            self._err(400, str(e))
+            sostituisci(tmp, self.json_path)
+        except OSError as e:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+            return self._err(500, f"salvataggio non riuscito (il file è forse aperto in un altro programma?): {e}")
+        self._send(200, {"ok": True, "pazienti": len(utenti), "backup": f"{CARTELLA_BACKUP}/{backup.name}" if backup else None})
 
     def do_POST(self):
         if not self._guard():
