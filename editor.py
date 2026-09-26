@@ -29,9 +29,11 @@ import io
 import json
 import os
 import shutil
+import socket
 import sys
 import threading
 import time
+import urllib.request
 import webbrowser
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -269,6 +271,36 @@ class Handler(BaseHTTPRequestHandler):
             self._err(400, f"richiesta non valida: {e}")
 
 
+class Server(ThreadingHTTPServer):
+    # Su Windows SO_REUSEADDR lascerebbe aprire a un secondo processo una porta già in uso:
+    # lì si chiede l'uso esclusivo. Su Linux invece serve per poter riavviare subito il server.
+    allow_reuse_address = os.name != "nt"
+
+    def server_bind(self):
+        if os.name == "nt":
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
+def editor_attivo(url):
+    """True se su `url` risponde già un editor delle schede (ignorando eventuali proxy di sistema)."""
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(url + "/api/utenti", timeout=2) as r:
+            return r.status == 200 and r.headers.get_content_type() == "application/json"
+    except (OSError, ValueError):
+        return False
+
+
+def avvisa(msg):
+    """Mostra un errore anche quando non c'è console (pythonw.exe su Windows: stderr vale None)."""
+    if sys.stderr:
+        print(msg, file=sys.stderr)
+    elif os.name == "nt":
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, msg, "Schede terapia", 0x10)  # 0x10 = icona di errore
+
+
 def main():
     ap = argparse.ArgumentParser(description="Editor locale di utenti.json + generatore PDF.")
     ap.add_argument("--port", type=int, default=8000)
@@ -277,8 +309,19 @@ def main():
     a = ap.parse_args()
 
     Handler.json_path = Path(a.json).resolve()
-    server = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
     url = f"http://127.0.0.1:{a.port}"
+    try:
+        server = Server(("127.0.0.1", a.port), Handler)
+    except OSError as e:
+        if editor_attivo(url):
+            # l'editor è già acceso: basta aprire il browser su quello
+            print(f"Editor già attivo su {url}")
+            if not a.no_browser:
+                webbrowser.open(url)
+            return
+        avvisa(f"Impossibile avviare l'editor sulla porta {a.port}: forse è usata da un altro programma.\n"
+               f"Chiudilo oppure usa un'altra porta (--port, o PORT in avvia_editor.bat).\n\n{e}")
+        sys.exit(1)
     print(f"Editor attivo su {url}  (Ctrl+C o pulsante Esci)\nDati: {Handler.json_path}")
     if not a.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
