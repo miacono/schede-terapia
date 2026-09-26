@@ -26,6 +26,14 @@ python3 -m venv venv
 venv/bin/pip install -r requirements.txt
 ```
 
+Su Windows (prompt dei comandi) i comandi di questo file usano `venv\Scripts\python.exe` al posto di `venv/bin/python`:
+
+```bat
+py -3 -m venv venv
+venv\Scripts\python.exe -m pip install -r requirements.txt
+venv\Scripts\python.exe genera_schede.py TUTTI 22/09/2026
+```
+
 ## Primi passi
 
 Il repository contiene solo `utenti.json.template`, con dati inventati. Per iniziare copialo:
