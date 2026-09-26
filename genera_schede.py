@@ -281,7 +281,11 @@ def main():
     giorni = [a.data_inizio + timedelta(days=i) for i in range((fine - a.data_inizio).days + 1)]
 
     out = a.output or f"schede_terapia_{a.data_inizio:%Y%m%d}" + (f"_{fine:%Y%m%d}" if a.data_fine else "") + ".pdf"
-    genera(scelti, giorni, out)
+    try:
+        genera(scelti, giorni, out)
+    except OSError as e:
+        # tipico su Windows: il PDF è ancora aperto nel lettore, che lo blocca
+        sys.exit(f"Errore: impossibile scrivere '{out}' (il file è forse aperto in un altro programma?): {e}")
     print(f"{out}: {len(scelti)} pazienti x {len(giorni)} giorni = {len(scelti) * len(giorni) * 2} pagine")
 
 
