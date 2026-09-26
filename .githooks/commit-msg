@@ -1,0 +1,8 @@
+#!/bin/sh
+# Rifiuta i messaggi di commit che attribuiscono il lavoro a strumenti AI
+# (trailer Co-Authored-By o firme "Generated with"): vedi AGENTS.md.
+# Si attiva una volta per clone con: git config core.hooksPath .githooks
+if grep -qiE '^[[:space:]]*co-authored-by:.*(claude|anthropic|openai|copilot|gemini)|generated (with|by).*(claude|anthropic|openai|copilot|gemini)' "$1"; then
+    echo "Commit rifiutato: niente Co-Authored-By o firme di strumenti AI nel messaggio (vedi AGENTS.md)." >&2
+    exit 1
+fi

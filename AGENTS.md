@@ -29,6 +29,7 @@ python3 -m venv venv && venv/bin/pip install -r requirements.txt
 venv/bin/python genera_schede.py rossi 22/09/2026 --json utenti.json.template -o /tmp/prova.pdf
 venv/bin/python editor.py --no-browser --port 8765 --json /tmp/copia/utenti.json
 python3 -m py_compile genera_schede.py editor.py
+git config core.hooksPath .githooks   # una volta per clone: attiva i controlli sui messaggi di commit
 ```
 
 Non ci sono test automatici: si verifica generando un PDF dal template e guardandolo (per esempio con `pdftoppm -r 72 -png`).
@@ -130,6 +131,7 @@ I messaggi di commit seguono [Conventional Commits 1.0](https://www.conventional
   - `feat(editor): salva i backup nella cartella backup/`
   - `docs: aggiunge AGENTS.md`
 - I messaggi precedenti a questo file non seguono la convenzione: non vanno riscritti.
+- **Niente attribuzioni a strumenti AI**: nessun trailer `Co-Authored-By` che nomini Claude, Anthropic o altri assistenti, nessuna firma tipo "Generated with…", né nei commit né nelle pull request. Autore e contributori del repository sono solo persone. L'hook `.githooks/commit-msg` rifiuta questi messaggi e `.claude/settings.json` disattiva l'attribuzione automatica di Claude Code: non aggirarli (niente `--no-verify`).
 
 ## Commit atomici
 

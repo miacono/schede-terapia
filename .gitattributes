@@ -1,2 +1,4 @@
 # I file batch di Windows richiedono fine riga CRLF (altrimenti goto/etichette possono rompersi)
 *.bat text eol=crlf
+# Gli hook git sono script sh: con CRLF non girano, nemmeno con Git per Windows
+.githooks/* text eol=lf
