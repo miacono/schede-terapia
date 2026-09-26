@@ -17,7 +17,7 @@
 """Server locale per modificare utenti.json e generare il PDF delle schede terapia.
 
 Uso:
-    editor.py [--port 8000] [--json utenti.json] [--no-browser]
+    src/editor.py [--port 8000] [--json utenti.json] [--no-browser]
 
 Poi si apre http://127.0.0.1:8000 (si apre da solo). Il server ascolta solo
 sul computer locale: i dati non escono dalla macchina.
@@ -42,7 +42,8 @@ from urllib.parse import urlparse
 
 import genera_schede
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent  # cartella src/
+RADICE = BASE.parent  # cartella del programma
 HTML = BASE / "editor.html"
 MAX_BODY = 5 * 1024 * 1024
 MAX_GIORNI = 62
@@ -138,7 +139,7 @@ def sostituisci(tmp, dest, tentativi=10, attesa=0.1):
 
 
 class Handler(BaseHTTPRequestHandler):
-    json_path: Path = BASE / "utenti.json"
+    json_path: Path = RADICE / "utenti.json"
     port = 8000
 
     def log_message(self, fmt, *args):
@@ -304,7 +305,7 @@ def avvisa(msg):
 def main():
     ap = argparse.ArgumentParser(description="Editor locale di utenti.json + generatore PDF.")
     ap.add_argument("--port", type=int, default=8000)
-    ap.add_argument("--json", default=str(BASE / "utenti.json"), help="file dati (default: utenti.json)")
+    ap.add_argument("--json", default=str(RADICE / "utenti.json"), help="file dati (default: utenti.json)")
     ap.add_argument("--no-browser", action="store_true", help="non aprire il browser")
     a = ap.parse_args()
 

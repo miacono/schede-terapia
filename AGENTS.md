@@ -11,11 +11,11 @@ Il progetto genera le schede terapia in PDF per Villa Silenzi e offre un editor 
 
 | File | Ruolo |
 |---|---|
-| `genera_schede.py` | generatore dei PDF (riga di comando e libreria, usata anche da `editor.py`) |
-| `editor.py` | server locale (solo `127.0.0.1`): API su `utenti.json` e generazione PDF |
-| `editor.html` | interfaccia dell'editor (un solo file, senza dipendenze esterne) |
+| `src/genera_schede.py` | generatore dei PDF (riga di comando e libreria, usata anche da `editor.py`) |
+| `src/editor.py` | server locale (solo `127.0.0.1`): API su `utenti.json` e generazione PDF |
+| `src/editor.html` | interfaccia dell'editor (un solo file, senza dipendenze esterne) |
 | `avvia_editor.bat` | avvio su Windows (CRLF obbligatorio, vedi `.gitattributes`); non testabile su Linux |
-| `assets/logo.jpeg` | logo stampato sulle schede |
+| `src/assets/logo.jpeg` | logo stampato sulle schede |
 | `utenti.json.template` | esempio con dati inventati |
 | `utenti.json` | dati reali, **mai versionati** |
 | `backup/` | copie di sicurezza di `utenti.json` (contenuto ignorato, resta solo `.gitkeep`) |
@@ -26,9 +26,9 @@ Dipendenze: solo `reportlab` (`requirements.txt`). Il resto è libreria standard
 
 ```bash
 python3 -m venv venv && venv/bin/pip install -r requirements.txt
-venv/bin/python genera_schede.py rossi 22/09/2026 --json utenti.json.template -o /tmp/prova.pdf
-venv/bin/python editor.py --no-browser --port 8765 --json /tmp/copia/utenti.json
-python3 -m py_compile genera_schede.py editor.py
+venv/bin/python src/genera_schede.py rossi 22/09/2026 --json utenti.json.template -o /tmp/prova.pdf
+venv/bin/python src/editor.py --no-browser --port 8765 --json /tmp/copia/utenti.json
+python3 -m py_compile src/genera_schede.py src/editor.py
 git config core.hooksPath .githooks   # una volta per clone: attiva i controlli sui messaggi di commit
 ```
 
@@ -95,7 +95,7 @@ Il server dell'editor deve restare legato a `127.0.0.1` e continuare a rifiutare
 
 - Interfaccia, messaggi d'errore, commenti e documentazione in **italiano**; identificatori come già presenti nel codice.
 - Ogni nuovo file sorgente (`.py`, `.html`) porta l'intestazione GPL-3.0-or-later già presente negli altri file (Copyright Matteo Iacono).
-- Le misure del layout PDF sono costanti in `genera_schede.py` (`X0`, `X1`, `COLONNE`, `X_ORE`…): le colonne devono restare allineate tra fronte e retro. Se ne cambi una, ricontrolla entrambe le facciate.
+- Le misure del layout PDF sono costanti in `src/genera_schede.py` (`X0`, `X1`, `COLONNE`, `X_ORE`…): le colonne devono restare allineate tra fronte e retro. Se ne cambi una, ricontrolla entrambe le facciate.
 - Nessuna dipendenza nuova senza necessità: se serve, aggiornala in `requirements.txt` e nel README.
 - Aggiorna `README.md` quando cambia il comportamento visibile (parametri, formato di `utenti.json`, struttura delle cartelle).
 
@@ -123,7 +123,7 @@ I messaggi di commit seguono [Conventional Commits 1.0](https://www.conventional
 ```
 
 - **Tipi**: `feat` (nuova funzionalità), `fix` (correzione di un difetto), `docs`, `style` (solo formattazione), `refactor`, `perf`, `test`, `build` (dipendenze, packaging), `ci`, `chore` (manutenzione varia).
-- **Ambiti** usati qui: `pdf` (`genera_schede.py`), `editor` (`editor.py`, `editor.html`), `data` (template e formato dei dati), `docs`, `repo` (`.gitignore`, licenza, struttura). Sono facoltativi.
+- **Ambiti** usati qui: `pdf` (`src/genera_schede.py`), `editor` (`src/editor.py`, `src/editor.html`), `data` (template e formato dei dati), `docs`, `repo` (`.gitignore`, licenza, struttura). Sono facoltativi.
 - **Descrizione**: in italiano, all'imperativo o all'infinito ("allinea…", "aggiunge…"), minuscola, senza punto finale, al massimo ~72 caratteri.
 - **Breaking change**: `!` dopo tipo/ambito (`feat(data)!: …`) e/o footer `BREAKING CHANGE:`. Cambiare il formato di `utenti.json` in modo non retrocompatibile lo è.
 - Esempi:

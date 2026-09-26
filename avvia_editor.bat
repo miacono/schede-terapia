@@ -12,9 +12,9 @@ if not exist "venv\Scripts\pythonw.exe" (
 )
 if not exist utenti.json copy utenti.json.template utenti.json >nul
 
-rem Avvio senza finestra console. Il browser lo apre editor.py.
+rem Avvio senza finestra console. Il browser lo apre src\editor.py.
 rem Per chiudere il programma usare il pulsante Esci nella pagina.
-start "" "venv\Scripts\pythonw.exe" editor.py --port %PORT%
+start "" "venv\Scripts\pythonw.exe" src\editor.py --port %PORT%
 exit /b 0
 
 :errore

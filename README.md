@@ -31,7 +31,7 @@ Su Windows (prompt dei comandi) i comandi di questo file usano `venv\Scripts\pyt
 ```bat
 py -3 -m venv venv
 venv\Scripts\python.exe -m pip install -r requirements.txt
-venv\Scripts\python.exe genera_schede.py TUTTI 22/09/2026
+venv\Scripts\python.exe src\genera_schede.py TUTTI 22/09/2026
 ```
 
 ## Primi passi
@@ -47,7 +47,7 @@ e poi modificalo con l'editor (vedi sotto) o a mano.
 ## Editor web locale
 
 ```bash
-venv/bin/python editor.py
+venv/bin/python src/editor.py
 ```
 
 Si apre il browser su `http://127.0.0.1:8000`. Opzioni: `--port 8080`, `--no-browser`, `--json altro_file.json`.
@@ -61,7 +61,7 @@ Dalla pagina si può:
 - **uscire** con il pulsante *Esci*, che spegne il server;
 - **generare il PDF** scegliendo pazienti e date (include anche le modifiche non ancora salvate).
 
-Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `editor.py`).
+Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
 
 Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` diverso da localhost: i dati non escono dal computer.
 
@@ -78,7 +78,7 @@ Su Windows si usa `avvia_editor.bat` (doppio clic, oppure un collegamento sul de
 ## Generare il PDF da riga di comando
 
 ```bash
-venv/bin/python genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o file.pdf] [--json utenti.json]
+venv/bin/python src/genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o file.pdf] [--json utenti.json]
 ```
 
 | Parametro | Descrizione |
@@ -93,10 +93,10 @@ Esempi:
 
 ```bash
 # tutti i pazienti, dal 22 al 24 settembre
-venv/bin/python genera_schede.py TUTTI 22/09/2026 24/09/2026
+venv/bin/python src/genera_schede.py TUTTI 22/09/2026 24/09/2026
 
 # solo due pazienti, un giorno
-venv/bin/python genera_schede.py "rossi, verdi" 22/09/2026
+venv/bin/python src/genera_schede.py "rossi, verdi" 22/09/2026
 ```
 
 Il PDF è ordinato per giorno: per ogni giorno, per ogni paziente, fronte e retro (un foglio fronte/retro per paziente).
@@ -132,11 +132,12 @@ Un elenco di pazienti. Vedi `utenti.json.template` per un esempio completo.
 ## Struttura del progetto
 
 ```
-genera_schede.py        generatore dei PDF (riga di comando)
-editor.py               server locale: API per utenti.json e PDF
-editor.html             interfaccia web dell'editor
 avvia_editor.bat        avvio dell'editor su Windows
-assets/logo.jpeg        logo stampato sulle schede
+src/                    il programma:
+  genera_schede.py        generatore dei PDF (riga di comando)
+  editor.py               server locale: API per utenti.json e PDF
+  editor.html             interfaccia web dell'editor
+  assets/logo.jpeg        logo stampato sulle schede
 utenti.json.template    esempio di dati (inventati)
 utenti.json             dati reali (ignorato da git)
 backup/                 copie di sicurezza di utenti.json (contenuto ignorato da git)

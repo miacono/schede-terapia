@@ -17,15 +17,15 @@
 """Genera il PDF delle schede terapia (fronte/retro per paziente, un foglio per giorno).
 
 Uso:
-    genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o FILE.pdf] [--json utenti.json]
+    src/genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o FILE.pdf] [--json utenti.json]
 
     NOMI          cognomi/nomi separati da virgola (case insensitive) oppure TUTTI
     DATA_INIZIO   gg/mm/aaaa
     DATA_FINE     gg/mm/aaaa (facoltativa, default = DATA_INIZIO)
 
 Esempio:
-    genera_schede.py TUTTI 22/09/2026 24/09/2026
-    genera_schede.py "rossi, verdi" 22/09/2026
+    src/genera_schede.py TUTTI 22/09/2026 24/09/2026
+    src/genera_schede.py "rossi, verdi" 22/09/2026
 
 Richiede: reportlab (pip install reportlab)
 """
@@ -39,7 +39,8 @@ from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent  # cartella src/
+RADICE = BASE.parent  # cartella del programma
 LOGO = BASE / "assets" / "logo.jpeg"
 TITOLO = "SERVIZIO RESIDENZIALE VILLA SILENZI"
 
@@ -265,7 +266,7 @@ def main():
     ap.add_argument("data_inizio", type=parse_data, help="gg/mm/aaaa")
     ap.add_argument("data_fine", type=parse_data, nargs="?", help="gg/mm/aaaa (facoltativa)")
     ap.add_argument("-o", "--output", help="file PDF di output")
-    ap.add_argument("--json", default=str(BASE / "utenti.json"), help="file dati (default: utenti.json)")
+    ap.add_argument("--json", default=str(RADICE / "utenti.json"), help="file dati (default: utenti.json)")
     a = ap.parse_args()
 
     fine = a.data_fine or a.data_inizio
