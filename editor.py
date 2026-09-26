@@ -45,6 +45,8 @@ MAX_BODY = 5 * 1024 * 1024
 MAX_GIORNI = 62
 GIORNI_BACKUP = 365
 CARTELLA_BACKUP = "backup"  # sottocartella accanto al file JSON
+# Timestamp nel nome dei backup: niente ":" perché Windows non li ammette nei nomi di file.
+FORMATO_BACKUP = "%Y-%m-%dT%H-%M-%S"
 
 
 def valida(utenti):
@@ -109,7 +111,7 @@ def pulisci_backup(json_path, giorni=GIORNI_BACKUP):
     limite = datetime.now() - timedelta(days=giorni)
     for f in cartella_backup(json_path).glob(f"{json_path.stem}_*.json.bak"):
         try:
-            quando = datetime.strptime(f.name[len(json_path.stem) + 1:-len(".json.bak")], "%Y-%m-%dT%H:%M:%S")
+            quando = datetime.strptime(f.name[len(json_path.stem) + 1:-len(".json.bak")], FORMATO_BACKUP)
         except ValueError:
             continue  # nome non riconosciuto: non toccare
         if quando < limite:
@@ -192,7 +194,7 @@ class Handler(BaseHTTPRequestHandler):
             utenti = [completa(u) for u in utenti]
             backup = None
             if self.json_path.exists():
-                ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                ts = datetime.now().strftime(FORMATO_BACKUP)
                 cartella = cartella_backup(self.json_path)
                 cartella.mkdir(exist_ok=True)
                 backup = cartella / f"{self.json_path.stem}_{ts}.json.bak"
