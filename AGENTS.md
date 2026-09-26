@@ -98,6 +98,17 @@ Il server dell'editor deve restare legato a `127.0.0.1` e continuare a rifiutare
 - Nessuna dipendenza nuova senza necessità: se serve, aggiornala in `requirements.txt` e nel README.
 - Aggiorna `README.md` quando cambia il comportamento visibile (parametri, formato di `utenti.json`, struttura delle cartelle).
 
+## Compatibilità Linux e Windows
+
+Il programma si usa sia su Linux sia su Windows: **ogni modifica deve essere compatibile e funzionare su entrambi i sistemi**. Si sviluppa e si prova su Linux, quindi fai attenzione a ciò che su Windows si comporta diversamente:
+
+- **Nomi di file**: niente caratteri vietati su Windows (`< > : " / \ | ? *`), niente nomi riservati (`CON`, `PRN`, `NUL`, `COM1`…), niente spazio o punto finale. Per esempio i timestamp nei nomi dei backup usano `-` e non `:`.
+- **Percorsi**: usa `pathlib.Path` (o `os.path`), mai separatori `/` o `\` scritti a mano; non dare per scontato che maiuscole e minuscole contino.
+- **File di testo**: apri sempre con `encoding="utf-8"` esplicito (su Windows il default non è UTF-8); lascia che Python gestisca i fine riga.
+- **Comandi e dipendenze**: niente comandi di shell o strumenti solo Unix nel programma; se serve un comportamento specifico per sistema, gestiscilo con `sys.platform`/`os.name` e prevedi entrambi i casi.
+- **File aperti**: su Windows non si può cancellare o rinominare un file ancora aperto: chiudilo prima (usa `with`).
+- Quando una modifica tocca file, percorsi, avvio o processi, dichiara nel messaggio al proprietario se non è stata provata su Windows.
+
 ## Conventional Commits
 
 I messaggi di commit seguono [Conventional Commits 1.0](https://www.conventionalcommits.org/it/v1.0.0/):
