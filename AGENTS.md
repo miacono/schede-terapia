@@ -133,7 +133,7 @@ I messaggi di commit seguono [Conventional Commits 1.0](https://www.conventional
   - `feat(editor): salva i backup nella cartella backup/`
   - `docs: aggiunge AGENTS.md`
 - I messaggi precedenti a questo file non seguono la convenzione: non vanno riscritti.
-- **Niente attribuzioni a strumenti AI**: nessun trailer `Co-Authored-By` che nomini Claude, Anthropic o altri assistenti, nessuna firma tipo "Generated with…", né nei commit né nelle pull request. Autore e contributori del repository sono solo persone. L'hook `.githooks/commit-msg` rifiuta questi messaggi e `.claude/settings.json` disattiva l'attribuzione automatica di Claude Code: non aggirarli (niente `--no-verify`).
+- **Niente attribuzioni a strumenti AI**: nessun trailer `Co-Authored-By` che nomini Claude, Anthropic o altri assistenti, nessuna firma tipo "Generated with…", né nei commit né nelle pull request. Autore e contributori del repository sono solo persone. L'hook `.githooks/commit-msg` rifiuta questi messaggi: non aggirarlo (niente `--no-verify`).
 
 ## Commit atomici
 

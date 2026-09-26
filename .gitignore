@@ -10,6 +10,9 @@ sorgenti/
 *SCHEDA TERAPIA*.pdf
 schede_terapia_*.pdf
 
+# File locali degli strumenti di sviluppo (impostazioni di Claude Code e simili)
+.claude/
+
 # Python
 venv/
 .venv/
