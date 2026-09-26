@@ -59,13 +59,13 @@ Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` dive
 
 ### Avvio su Windows
 
-Su Windows si usa `avvia_editor.bat` (doppio clic, oppure un collegamento sul desktop con la sua icona). Serve Python 3.9 o successivo installato (con il *py launcher*).
+Su Windows si usa `avvia_editor.bat` (doppio clic, oppure un collegamento sul desktop con la sua icona). Serve Python 3.9 o successivo installato (con il *py launcher* oppure `python` nel PATH).
 
 - **Primo avvio:** crea `venv`, installa le dipendenze (serve internet) e crea `utenti.json` dal template.
 - **Avvio normale:** lancia l'editor **senza finestra console** e apre il browser su `http://127.0.0.1:8000`.
 - **Chiusura:** con il pulsante **Esci** nella pagina. Chiudere solo la scheda del browser *non* ferma il server.
-- **Già acceso:** se l'editor è già in esecuzione, il file apre solo il browser sull'istanza esistente.
-- **Porta occupata:** se la 8000 è usata da un altro programma, mostra un avviso. Per cambiarla modifica `PORT` all'inizio del file.
+- **Già acceso:** se l'editor è già in esecuzione, si apre solo il browser sull'istanza esistente.
+- **Porta occupata:** se la 8000 è usata da un altro programma, compare un avviso. Per cambiarla modifica `PORT` all'inizio del file.
 
 ## Generare il PDF da riga di comando
 
