@@ -272,7 +272,11 @@ def main():
     if fine < a.data_inizio:
         ap.error("la data di fine precede la data di inizio")
 
-    utenti = json.loads(Path(a.json).read_text(encoding="utf-8"))
+    try:
+        # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
+        utenti = json.loads(Path(a.json).read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        sys.exit(f"Errore: impossibile leggere '{a.json}' (deve essere JSON in UTF-8): {e}")
     scelti = seleziona(utenti, a.nomi)
     giorni = [a.data_inizio + timedelta(days=i) for i in range((fine - a.data_inizio).days + 1)]
 

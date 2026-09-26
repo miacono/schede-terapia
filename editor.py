@@ -174,9 +174,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, HTML.read_bytes(), "text/html; charset=utf-8")
         elif self.path == "/api/utenti":
             try:
-                data = json.loads(self.json_path.read_text(encoding="utf-8"))
+                # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
+                data = json.loads(self.json_path.read_text(encoding="utf-8-sig"))
             except FileNotFoundError:
                 data = []
+            except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                return self._err(500, f"{self.json_path.name} non leggibile (deve essere JSON in UTF-8): {e}")
             self._send(200, data)
         else:
             self._err(404, "non trovato")
