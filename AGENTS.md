@@ -16,9 +16,11 @@ Il progetto genera le schede terapia in PDF per Villa Silenzi e offre un editor 
 | `src/editor.html` | interfaccia dell'editor (un solo file, senza dipendenze esterne) |
 | `avvia_editor.bat` | avvio su Windows (CRLF obbligatorio, vedi `.gitattributes`); non testabile su Linux |
 | `src/assets/logo.jpeg` | logo stampato sulle schede |
-| `utenti.json.template` | esempio con dati inventati |
-| `utenti.json` | dati reali, **mai versionati** |
-| `backup/` | copie di sicurezza di `utenti.json` (contenuto ignorato, resta solo `.gitkeep`) |
+| `data/utenti.json.template` | esempio con dati inventati (l'unico file versionato in `data/`) |
+| `data/utenti.json` | dati reali, **mai versionati** |
+| `data/backup/` | copie di sicurezza di `utenti.json`, **mai versionate** |
+
+I dati stanno tutti in `data/`, il codice in `src/`. Al primo avvio con il file dati predefinito, `editor.py` sposta in `data/` l'`utenti.json` e la `backup/` della vecchia struttura (cartella principale) senza sovrascrivere nulla, e crea `data/utenti.json` dal template se manca (`prepara_dati`).
 
 Dipendenze: solo `reportlab` (`requirements.txt`). Il resto è libreria standard.
 
@@ -26,7 +28,7 @@ Dipendenze: solo `reportlab` (`requirements.txt`). Il resto è libreria standard
 
 ```bash
 python3 -m venv venv && venv/bin/pip install -r requirements.txt
-venv/bin/python src/genera_schede.py rossi 22/09/2026 --json utenti.json.template -o /tmp/prova.pdf
+venv/bin/python src/genera_schede.py rossi 22/09/2026 --json data/utenti.json.template -o /tmp/prova.pdf
 venv/bin/python src/editor.py --no-browser --port 8765 --json /tmp/copia/utenti.json
 python3 -m py_compile src/genera_schede.py src/editor.py
 git config core.hooksPath .githooks   # una volta per clone: attiva i controlli sui messaggi di commit
@@ -45,28 +47,28 @@ Qualunque informazione riferibile a una persona reale, anche se incompleta o "ma
 - pazienti: nome, cognome, **solo il cognome o solo il nome**, iniziali, soprannomi, date di nascita, codici, numeri di protocollo;
 - terapie: farmaci, dosaggi, orari, note e terapie al bisogno **di un paziente reale**, anche senza il nome (uno schema terapeutico può identificare);
 - operatori sanitari e servizi: nomi di medici, psichiatri, SERD e sedi collegati a pazienti reali;
-- contenuto di `utenti.json`, di `sorgenti/`, dei PDF generati, dei backup e di qualunque loro estratto, screenshot o riga di log.
+- contenuto di `data/` (tranne il template), di `sorgenti/`, dei PDF generati, dei backup e di qualunque loro estratto, screenshot o riga di log.
 
 ### Dove è vietato
 
-Documentazione (`README.md`, `AGENTS.md`, `CLAUDE.md`), esempi e docstring, **commenti nel codice**, test e fixture, `utenti.json.template`, messaggi di commit, nomi di branch e tag, issue e pull request, immagini e PDF di esempio, output incollati in un commit o in una discussione pubblica.
+Documentazione (`README.md`, `AGENTS.md`, `CLAUDE.md`), esempi e docstring, **commenti nel codice**, test e fixture, `data/utenti.json.template`, messaggi di commit, nomi di branch e tag, issue e pull request, immagini e PDF di esempio, output incollati in un commit o in una discussione pubblica.
 
 ### Cosa fare invece
 
-- Usa **solo dati inventati e palesemente fittizi**, come in `utenti.json.template`: `ROSSI MARIO`, `VERDI ANNA`, `Serd Esempio`, `Farmaco A 10 mg`. Non usare cognomi veri "cambiando una lettera" né combinazioni prese dai dati reali.
-- Prova tutto ciò che scrive (salvataggi, backup, pulizie) su una **copia** dei dati (`--json /tmp/.../utenti.json`), mai su `utenti.json`.
+- Usa **solo dati inventati e palesemente fittizi**, come in `data/utenti.json.template`: `ROSSI MARIO`, `VERDI ANNA`, `Serd Esempio`, `Farmaco A 10 mg`. Non usare cognomi veri "cambiando una lettera" né combinazioni prese dai dati reali.
+- Prova tutto ciò che scrive (salvataggi, backup, pulizie) su una **copia** dei dati (`--json /tmp/.../utenti.json`), mai su `data/utenti.json`. Per provare lo spostamento dei dati, copia `src/` in una cartella di prova con dati inventati.
 - Se ti serve un caso realistico, costruiscilo da zero nel template; non copiarlo da un paziente.
 - Nelle risposte, nei log e nei messaggi d'errore che scrivi, non riportare dati reali che non servono.
 
 ### Prima di ogni commit
 
 1. `git status` e `git diff --cached`: controlla riga per riga cosa stai per pubblicare.
-2. Cerca i nomi presenti in `utenti.json` (cognomi e nomi, ignorando le parole troppo comuni) nel diff in coda; un riscontro è un blocco:
+2. Cerca i nomi presenti in `data/utenti.json` (cognomi e nomi, ignorando le parole troppo comuni) nel diff in coda; un riscontro è un blocco:
 
    ```bash
    python3 - <<'EOF'
    import json, re, subprocess
-   parole = {w for u in json.load(open("utenti.json"))
+   parole = {w for u in json.load(open("data/utenti.json", encoding="utf-8-sig"))
              for w in re.split(r"[\s']+", u["paziente"]) if len(w) > 3}
    diff = subprocess.run(["git", "diff", "--cached"], capture_output=True, text=True).stdout
    trovate = sorted(w for w in parole if re.search(rf"\b{re.escape(w)}\b", diff, re.I))
@@ -79,7 +81,7 @@ Documentazione (`README.md`, `AGENTS.md`, `CLAUDE.md`), esempi e docstring, **co
 
 ### Protezioni già presenti
 
-`utenti.json`, i suoi backup (`backup/*`), `sorgenti/`, i PDF delle schede e `venv/` sono in `.gitignore`: non toglierli e non forzare l'aggiunta con `git add -f`. Non aggirare `.gitignore`, non spostare i dati reali in cartelle tracciate.
+La cartella `data/` (tranne il template), le voci della vecchia struttura (`utenti.json`, `backup/`), `sorgenti/`, i PDF delle schede e `venv/` sono in `.gitignore`: non toglierli e non forzare l'aggiunta con `git add -f`. Non aggirare `.gitignore`, non spostare i dati reali in cartelle tracciate.
 
 ### Se un dato reale finisce nel repository
 

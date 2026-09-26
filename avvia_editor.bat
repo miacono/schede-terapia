@@ -10,9 +10,9 @@ if not exist "venv\Scripts\pythonw.exe" (
     py -3 -m venv venv || python -m venv venv || goto errore
     "venv\Scripts\python.exe" -m pip install -r requirements.txt || goto errore
 )
-if not exist utenti.json copy utenti.json.template utenti.json >nul
 
-rem Avvio senza finestra console. Il browser lo apre src\editor.py.
+rem Avvio senza finestra console. src\editor.py sposta i dati in data\ se servono,
+rem crea data\utenti.json dal template al primo avvio e apre il browser.
 rem Per chiudere il programma usare il pulsante Esci nella pagina.
 start "" "venv\Scripts\pythonw.exe" src\editor.py --port %PORT%
 exit /b 0

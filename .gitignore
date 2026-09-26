@@ -1,8 +1,10 @@
 # Dati dei pazienti (non versionare mai)
+data/*
+!data/utenti.json.template
+# vecchia struttura, con i dati nella cartella principale (li sposta in data/ l'editor)
 utenti.json
 utenti_*.json.bak
-backup/*
-!backup/.gitkeep
+backup/
 utenti.json.tmp
 sorgenti/
 *SCHEDA TERAPIA*.pdf

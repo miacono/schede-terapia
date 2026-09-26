@@ -44,11 +44,14 @@ import genera_schede
 
 BASE = Path(__file__).resolve().parent  # cartella src/
 RADICE = BASE.parent  # cartella del programma
+DATI = RADICE / "data"
+JSON_PREDEFINITO = DATI / "utenti.json"
+TEMPLATE = DATI / "utenti.json.template"
 HTML = BASE / "editor.html"
 MAX_BODY = 5 * 1024 * 1024
 MAX_GIORNI = 62
 GIORNI_BACKUP = 365
-CARTELLA_BACKUP = "backup"  # sottocartella accanto al file JSON
+CARTELLA_BACKUP = "backup"  # sottocartella accanto al file JSON (data/backup/)
 # Timestamp nel nome dei backup: niente ":" perché Windows non li ammette nei nomi di file.
 FORMATO_BACKUP = "%Y-%m-%dT%H-%M-%S"
 
@@ -138,8 +141,72 @@ def sostituisci(tmp, dest, tentativi=10, attesa=0.1):
             time.sleep(attesa)
 
 
+def sposta_senza_sovrascrivere(src, dst):
+    """Sposta `src` in `dst` solo se `dst` non esiste ancora; ritorna False se esiste già.
+    Niente os.rename o shutil.move: su Linux sovrascrivono in silenzio un file esistente.
+    La creazione esclusiva ("xb") invece fallisce allo stesso modo su Linux e su Windows."""
+    dati = src.read_bytes()
+    try:
+        f = open(dst, "xb")
+    except FileExistsError:
+        return False
+    try:
+        with f:
+            f.write(dati)
+        if dst.read_bytes() != dati:
+            raise OSError(f"la copia di {src} in {dst} non corrisponde all'originale")
+        shutil.copystat(src, dst)
+    except BaseException:
+        dst.unlink()  # creato poco fa da questa funzione: si torna alla situazione di partenza
+        raise
+    src.unlink()  # l'originale si cancella solo dopo che la copia è stata verificata
+    return True
+
+
+def prepara_dati(json_path):
+    """Sposta in data/ i dati della vecchia struttura (utenti.json e backup/ nella cartella del
+    programma) e crea utenti.json dal template se manca. Non sovrascrive mai un file esistente.
+    Ritorna gli avvisi da mostrare all'utente."""
+    avvisi = []
+    json_path.parent.mkdir(exist_ok=True)
+
+    vecchio = RADICE / json_path.name
+    if vecchio.is_file() and not sposta_senza_sovrascrivere(vecchio, json_path):
+        avvisi.append(f"Ci sono due file dei dati: si usa {json_path}.\n"
+                      f"Il vecchio {vecchio} non è stato toccato: controllalo e, se non serve più, eliminalo.")
+
+    vecchi_backup = RADICE / CARTELLA_BACKUP
+    if vecchi_backup.is_dir():
+        nuovi_backup = cartella_backup(json_path)
+        nuovi_backup.mkdir(exist_ok=True)
+        rimasti = 0
+        for f in sorted(vecchi_backup.iterdir()):
+            if f.is_file() and f.name != ".gitkeep" and not sposta_senza_sovrascrivere(f, nuovi_backup / f.name):
+                rimasti += 1
+        if rimasti:
+            avvisi.append(f"{rimasti} backup in {vecchi_backup} hanno lo stesso nome di backup già presenti "
+                          f"in {nuovi_backup} e non sono stati spostati: controllali a mano.")
+        # la vecchia cartella si toglie solo se è rimasto al più il segnaposto vuoto di git
+        segnaposto = vecchi_backup / ".gitkeep"
+        if [f.name for f in vecchi_backup.iterdir()] == [".gitkeep"] and segnaposto.stat().st_size == 0:
+            segnaposto.unlink()
+        try:
+            vecchi_backup.rmdir()  # fallisce, lasciandola dov'è, se non è vuota
+        except OSError:
+            pass
+
+    if not json_path.exists():
+        dati = TEMPLATE.read_bytes()
+        try:
+            with open(json_path, "xb") as f:
+                f.write(dati)
+        except FileExistsError:
+            pass
+    return avvisi
+
+
 class Handler(BaseHTTPRequestHandler):
-    json_path: Path = RADICE / "utenti.json"
+    json_path: Path = JSON_PREDEFINITO
     port = 8000
 
     def log_message(self, fmt, *args):
@@ -293,19 +360,20 @@ def editor_attivo(url):
         return False
 
 
-def avvisa(msg):
-    """Mostra un errore anche quando non c'è console (pythonw.exe su Windows: stderr vale None)."""
+def avvisa(msg, errore=True):
+    """Mostra un messaggio anche quando non c'è console (pythonw.exe su Windows: stderr vale None)."""
     if sys.stderr:
         print(msg, file=sys.stderr)
     elif os.name == "nt":
         import ctypes
-        ctypes.windll.user32.MessageBoxW(None, msg, "Schede terapia", 0x10)  # 0x10 = icona di errore
+        icona = 0x10 if errore else 0x30  # icona di errore / di avviso
+        ctypes.windll.user32.MessageBoxW(None, msg, "Schede terapia", icona)
 
 
 def main():
     ap = argparse.ArgumentParser(description="Editor locale di utenti.json + generatore PDF.")
     ap.add_argument("--port", type=int, default=8000)
-    ap.add_argument("--json", default=str(RADICE / "utenti.json"), help="file dati (default: utenti.json)")
+    ap.add_argument("--json", default=str(JSON_PREDEFINITO), help="file dati (default: data/utenti.json)")
     ap.add_argument("--no-browser", action="store_true", help="non aprire il browser")
     a = ap.parse_args()
 
@@ -323,6 +391,15 @@ def main():
         avvisa(f"Impossibile avviare l'editor sulla porta {a.port}: forse è usata da un altro programma.\n"
                f"Chiudilo oppure usa un'altra porta (--port, o PORT in avvia_editor.bat).\n\n{e}")
         sys.exit(1)
+    if Handler.json_path == JSON_PREDEFINITO:
+        # dopo l'avvio del server, così due istanze lanciate insieme non spostano i file in contemporanea
+        try:
+            for msg in prepara_dati(Handler.json_path):
+                avvisa(msg, errore=False)
+        except OSError as e:
+            server.server_close()
+            avvisa(f"Impossibile preparare la cartella dei dati: {e}\nNessun file è stato sovrascritto.")
+            sys.exit(1)
     print(f"Editor attivo su {url}  (Ctrl+C o pulsante Esci)\nDati: {Handler.json_path}")
     if not a.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()

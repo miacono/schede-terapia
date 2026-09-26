@@ -2,7 +2,7 @@
 
 Strumenti per gestire e stampare le **schede terapia** del Servizio Residenziale Villa Silenzi.
 
-Le schede sono descritte in un unico file `utenti.json`. Da lì si può:
+Le schede sono descritte in un unico file, `data/utenti.json`. Da lì si può:
 
 - **modificare** i dati con un editor web locale, senza conoscere la sintassi JSON;
 - **generare il PDF** delle schede, un foglio fronte/retro per paziente e per giorno.
@@ -14,7 +14,7 @@ Ogni scheda ha due facciate:
 | Fronte | logo e titolo, paziente e data, somministrazioni (Mattino, Pranzo, Cena, Notte ed eventuali altre fasce), SERD inviante, medico SERD, psichiatra CT, note |
 | Retro | logo e titolo, paziente e data, terapia al bisogno, tabella di somministrazione della terapia al bisogno |
 
-> ⚠️ **Privacy.** `utenti.json` contiene dati sanitari di persone reali ed è escluso dal repository tramite `.gitignore`, insieme ai suoi backup e ai PDF generati. Non committarli mai.
+> ⚠️ **Privacy.** `data/utenti.json` contiene dati sanitari di persone reali. Tutta la cartella `data/` (tranne il template) è esclusa dal repository tramite `.gitignore`, insieme ai PDF generati. Non committarli mai.
 
 ## Requisiti
 
@@ -36,13 +36,19 @@ venv\Scripts\python.exe src\genera_schede.py TUTTI 22/09/2026
 
 ## Primi passi
 
-Il repository contiene solo `utenti.json.template`, con dati inventati. Per iniziare copialo:
+Il repository contiene solo `data/utenti.json.template`, con dati inventati. Al primo avvio l'editor lo copia in `data/utenti.json`, che poi si modifica con l'editor (vedi sotto) o a mano. Per usare solo la riga di comando, copialo a mano:
 
 ```bash
-cp utenti.json.template utenti.json
+cp data/utenti.json.template data/utenti.json
 ```
 
-e poi modificalo con l'editor (vedi sotto) o a mano.
+### Aggiornamento dalla versione con i dati nella cartella principale
+
+Fino alla versione precedente `utenti.json` e `backup/` stavano nella cartella principale. All'avvio l'editor li sposta da solo in `data/`, **senza mai sovrascrivere** un file già presente:
+
+- se `data/utenti.json` esiste già, il vecchio `utenti.json` non viene toccato e compare un avviso: va controllato ed eliminato a mano;
+- un vecchio backup con lo stesso nome di uno già presente in `data/backup/` resta dov'è, con un avviso;
+- se lo spostamento non riesce, l'editor si ferma senza toccare niente.
 
 ## Editor web locale
 
@@ -57,11 +63,11 @@ Dalla pagina si può:
 - cercare, aggiungere ed eliminare pazienti;
 - modificare SERD, medico e psichiatra;
 - aggiungere, togliere e riordinare fasce, farmaci, note e righe "al bisogno";
-- **salvare** le modifiche in `utenti.json`;
+- **salvare** le modifiche in `data/utenti.json`;
 - **uscire** con il pulsante *Esci*, che spegne il server;
 - **generare il PDF** scegliendo pazienti e date (include anche le modifiche non ancora salvate).
 
-Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
+Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` accanto al file dei dati (quindi `data/backup/`) come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `data/backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
 
 Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` diverso da localhost: i dati non escono dal computer.
 
@@ -69,7 +75,7 @@ Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` dive
 
 Su Windows si usa `avvia_editor.bat` (doppio clic, oppure un collegamento sul desktop con la sua icona). Serve Python 3.9 o successivo installato (con il *py launcher* oppure `python` nel PATH).
 
-- **Primo avvio:** crea `venv`, installa le dipendenze (serve internet) e crea `utenti.json` dal template.
+- **Primo avvio:** crea `venv` e installa le dipendenze (serve internet); l'editor crea `data/utenti.json` dal template.
 - **Avvio normale:** lancia l'editor **senza finestra console** e apre il browser su `http://127.0.0.1:8000`.
 - **Chiusura:** con il pulsante **Esci** nella pagina. Chiudere solo la scheda del browser *non* ferma il server.
 - **Già acceso:** se l'editor è già in esecuzione, si apre solo il browser sull'istanza esistente.
@@ -78,7 +84,7 @@ Su Windows si usa `avvia_editor.bat` (doppio clic, oppure un collegamento sul de
 ## Generare il PDF da riga di comando
 
 ```bash
-venv/bin/python src/genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o file.pdf] [--json utenti.json]
+venv/bin/python src/genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o file.pdf] [--json data/utenti.json]
 ```
 
 | Parametro | Descrizione |
@@ -105,7 +111,7 @@ Le fasce **Mattino, Pranzo, Cena e Notte** vengono sempre stampate, anche vuote,
 
 ## Formato di `utenti.json`
 
-Un elenco di pazienti. Vedi `utenti.json.template` per un esempio completo.
+Un elenco di pazienti. Vedi `data/utenti.json.template` per un esempio completo.
 
 ```json
 {
@@ -138,9 +144,10 @@ src/                    il programma:
   editor.py               server locale: API per utenti.json e PDF
   editor.html             interfaccia web dell'editor
   assets/logo.jpeg        logo stampato sulle schede
-utenti.json.template    esempio di dati (inventati)
-utenti.json             dati reali (ignorato da git)
-backup/                 copie di sicurezza di utenti.json (contenuto ignorato da git)
+data/                   i dati (ignorati da git, tranne il template):
+  utenti.json.template    esempio di dati (inventati)
+  utenti.json             dati reali
+  backup/                 copie di sicurezza di utenti.json
 requirements.txt        dipendenze Python
 ```
 

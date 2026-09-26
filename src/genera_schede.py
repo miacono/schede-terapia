@@ -41,6 +41,7 @@ from reportlab.pdfgen import canvas
 
 BASE = Path(__file__).resolve().parent  # cartella src/
 RADICE = BASE.parent  # cartella del programma
+JSON_PREDEFINITO = RADICE / "data" / "utenti.json"
 LOGO = BASE / "assets" / "logo.jpeg"
 TITOLO = "SERVIZIO RESIDENZIALE VILLA SILENZI"
 
@@ -266,13 +267,16 @@ def main():
     ap.add_argument("data_inizio", type=parse_data, help="gg/mm/aaaa")
     ap.add_argument("data_fine", type=parse_data, nargs="?", help="gg/mm/aaaa (facoltativa)")
     ap.add_argument("-o", "--output", help="file PDF di output")
-    ap.add_argument("--json", default=str(RADICE / "utenti.json"), help="file dati (default: utenti.json)")
+    ap.add_argument("--json", default=str(JSON_PREDEFINITO), help="file dati (default: data/utenti.json)")
     a = ap.parse_args()
 
     fine = a.data_fine or a.data_inizio
     if fine < a.data_inizio:
         ap.error("la data di fine precede la data di inizio")
 
+    if Path(a.json).resolve() == JSON_PREDEFINITO and not JSON_PREDEFINITO.exists() and (RADICE / "utenti.json").exists():
+        sys.exit(f"Errore: {a.json} non esiste, ma c'è ancora il vecchio {RADICE / 'utenti.json'}.\n"
+                 "Avvia una volta l'editor per spostarlo nella cartella data/.")
     try:
         # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
         utenti = json.loads(Path(a.json).read_text(encoding="utf-8-sig"))
