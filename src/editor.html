@@ -70,9 +70,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   .vuoto { color: var(--muted); font-style: italic; margin: 6px 0; }
   .pdf-riga { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
   .pdf-riga > div { flex: 1; min-width: 140px; }
-  .selezione { max-height: 150px; overflow: auto; border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px;
-               columns: 2 200px; margin-bottom: 10px; }
-  .selezione label { color: var(--ink); font-size: 14px; margin: 2px 0; display: flex; gap: 6px; align-items: center; }
+  /* griglia e non colonne CSS: con un'altezza massima le colonne traboccano di lato e
+     possono spezzare una voce tra due colonne (casella da una parte, testo dall'altra) */
+  .selezione { max-height: 150px; overflow-y: auto; border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px;
+               display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); column-gap: 16px;
+               align-content: start; margin-bottom: 10px; }
+  .selezione label { color: var(--ink); font-size: 14px; margin: 2px 0; display: flex; gap: 6px; align-items: flex-start; }
+  .selezione input[type=checkbox] { margin-top: 3px; flex: none; }
   #msg, #msgS { margin-top: 8px; min-height: 1.2em; font-size: 13px; }
   #msg.err, #msgS.err { color: var(--danger); }
   #msg.ok, #msgS.ok { color: var(--ok); }
