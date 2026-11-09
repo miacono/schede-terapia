@@ -78,7 +78,7 @@ Dalla scheda *Sostitutivi* si può:
 - indicare farmaco, quantità iniziale, unità di misura e data di inizio: la fine (il martedì) si calcola da sola;
 - modificare gli orari (predefiniti 08.30, 13.00, 18.00, 23.00; si possono scrivere anche col punto) e la quantità standard di ciascuno;
 - cambiare la quantità di un orario da un certo giorno in poi nella tabella *giorno per giorno*: i giorni successivi ripetono la nuova quantità. La tabella mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
-- creare con un clic la scheda della **settimana successiva**, con gli stessi orari e quantità;
+- creare con un clic la scheda della **settimana successiva**, con gli stessi orari: la quantità standard di ogni orario è quella in vigore l'ultimo giorno della settimana precedente, quindi le variazioni diventano i nuovi valori di partenza;
 - **generare il PDF** delle schede scelte.
 
 Gli utenti si aggiungono solo dalla scheda *Utenti*. Rinominando un utente si aggiornano anche le sue schede sostitutivi; non lo si può eliminare finché ne ha. Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup, e rifiuta schede sostitutivi di utenti che non ci sono nell'elenco utenti.

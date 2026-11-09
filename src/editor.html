@@ -662,11 +662,13 @@ function disegnaSchedaS() {
       h("div", { style: "flex:1;min-width:200px" }, sceltaUtente(s.utente, (nome) => {
         s.utente = nome; modificaS(); disegnaSchedaS(); disegnaListaS(); disegnaSelezioneS();
       })),
-      h("button", { title: "Nuova scheda per la settimana successiva, con gli stessi orari e quantità", onclick: () => {
+      h("button", { title: "Nuova scheda per la settimana successiva, con gli stessi orari e, come quantità standard, quelle in vigore l'ultimo giorno", onclick: () => {
         const p = periodoS(s);
         if (!p.length) return;
         const fine = p[p.length - 1];
-        const n = nuovaScheda({ ...s, data_inizio: isoData(new Date(fine.getFullYear(), fine.getMonth(), fine.getDate() + 1)) });
+        // le variazioni della settimana diventano le quantità standard della successiva
+        const orari = s.orari.map((o) => { const and = normalizzaOrario(o.orario) ? andamento(s, o) : []; return { ...o, quantita: and.length ? and[and.length - 1].quantita : o.quantita }; });
+        const n = nuovaScheda({ ...s, orari, data_inizio: isoData(new Date(fine.getFullYear(), fine.getMonth(), fine.getDate() + 1)) });
         sostitutivi.unshift(n); correnteS = n; modificaS(); disegnaTuttoS();
       } }, "Settimana successiva"),
       h("button", { class: "pericolo", onclick: () => {
