@@ -141,6 +141,39 @@ def sostituisci(tmp, dest, tentativi=10, attesa=0.1):
             time.sleep(attesa)
 
 
+def leggi_json(json_path):
+    """Contenuto del file dati, oppure un elenco vuoto se il file non esiste ancora."""
+    try:
+        # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
+        return json.loads(json_path.read_text(encoding="utf-8-sig"))
+    except FileNotFoundError:
+        return []
+
+
+def salva_json(json_path, dati):
+    """Salva `dati` in `json_path`, copiando prima il file corrente nella cartella dei backup.
+    Ritorna il percorso del backup (None se il file non esisteva). Solleva OSError."""
+    tmp = json_path.with_suffix(".json.tmp")
+    try:
+        backup = None
+        if json_path.exists():
+            ts = datetime.now().strftime(FORMATO_BACKUP)
+            cartella = cartella_backup(json_path)
+            cartella.mkdir(exist_ok=True)
+            backup = cartella / f"{json_path.stem}_{ts}.json.bak"
+            shutil.copy2(json_path, backup)
+            pulisci_backup(json_path)
+        tmp.write_text(json.dumps(dati, ensure_ascii=False, indent=2), encoding="utf-8")
+        sostituisci(tmp, json_path)
+    except OSError:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    return backup
+
+
 def sposta_senza_sovrascrivere(src, dst):
     """Sposta `src` in `dst` solo se `dst` non esiste ancora; ritorna False se esiste già.
     Niente os.rename o shutil.move: su Linux sovrascrivono in silenzio un file esistente.
@@ -261,10 +294,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, HTML.read_bytes(), "text/html; charset=utf-8")
         elif self.path == "/api/utenti":
             try:
-                # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
-                data = json.loads(self.json_path.read_text(encoding="utf-8-sig"))
-            except FileNotFoundError:
-                data = []
+                data = leggi_json(self.json_path)
             except (UnicodeDecodeError, json.JSONDecodeError) as e:
                 return self._err(500, f"{self.json_path.name} non leggibile (deve essere JSON in UTF-8): {e}")
             self._send(200, data)
@@ -284,23 +314,9 @@ class Handler(BaseHTTPRequestHandler):
             utenti = [completa(u) for u in utenti]
         except (ValueError, json.JSONDecodeError) as e:
             return self._err(400, str(e))
-        tmp = self.json_path.with_suffix(".json.tmp")
         try:
-            backup = None
-            if self.json_path.exists():
-                ts = datetime.now().strftime(FORMATO_BACKUP)
-                cartella = cartella_backup(self.json_path)
-                cartella.mkdir(exist_ok=True)
-                backup = cartella / f"{self.json_path.stem}_{ts}.json.bak"
-                shutil.copy2(self.json_path, backup)
-                pulisci_backup(self.json_path)
-            tmp.write_text(json.dumps(utenti, ensure_ascii=False, indent=2), encoding="utf-8")
-            sostituisci(tmp, self.json_path)
+            backup = salva_json(self.json_path, utenti)
         except OSError as e:
-            try:
-                tmp.unlink()
-            except OSError:
-                pass
             return self._err(500, f"salvataggio non riuscito (il file è forse aperto in un altro programma?): {e}")
         self._send(200, {"ok": True, "pazienti": len(utenti), "backup": f"{CARTELLA_BACKUP}/{backup.name}" if backup else None})
 
