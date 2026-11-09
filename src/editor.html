@@ -313,7 +313,8 @@ $("nuovo").addEventListener("click", () => {
   if (!nome || !nome.trim()) return;
   if (dati.some((u) => u.utente.toLowerCase() === nome.trim().toLowerCase())) { alert("Esiste già un utente con questo nome."); return; }
   const u = { utente: nome.trim().toUpperCase(), serd_inviante: "", medico_serd: "", psichiatra_ct: "",
-              somministrazioni: [], note: [], al_bisogno: [] };
+              // le fasce di default, vuote: sono quelle che il PDF stampa sempre
+              somministrazioni: FASCE.map((nome) => ({ nome, orario: null, farmaci: [] })), note: [], al_bisogno: [] };
   dati.push(u);
   ordinaUtenti(dati);
   corrente = u;
