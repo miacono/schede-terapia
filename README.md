@@ -68,7 +68,7 @@ Dalla scheda *Utenti* si può:
 
 Dalla scheda *Farmaci* si può:
 
-- scegliere l'utente da un menu a tendina;
+- scegliere l'utente dall'elenco a sinistra (con la ricerca) o dal menu a tendina; l'utente scelto resta lo stesso anche nella scheda *Utenti*;
 - aggiungere, togliere e riordinare fasce, farmaci, note e righe "al bisogno";
 - **generare il PDF** scegliendo utenti e date (include anche le modifiche non ancora salvate).
 

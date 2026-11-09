@@ -82,7 +82,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   #msg.ok, #msgS.ok { color: var(--ok); }
   .vuoto-pagina { text-align: center; color: var(--muted); padding: 60px 0; }
   main[hidden] { display: none; }
-  main.singola { grid-template-columns: minmax(0, 1fr); max-width: 960px; }
   nav.schede { display: flex; gap: 4px; }
   nav.schede button { border-radius: 7px 7px 0 0; border-bottom-width: 3px; }
   nav.schede button.attiva { border-bottom-color: var(--accent); font-weight: 600; }
@@ -133,7 +132,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   </section>
 </main>
 
-<main id="vista-terapia" class="singola">
+<main id="vista-terapia">
+  <aside class="panel">
+    <h2>Utenti</h2>
+    <input type="search" id="cercaF" placeholder="Cerca…">
+    <div id="listaF" class="lista"></div>
+    <p class="vuoto" style="font-size:13px">Gli utenti si aggiungono dalla scheda Utenti.</p>
+  </aside>
+
   <section>
     <div id="scheda" class="panel"></div>
 
@@ -281,17 +287,20 @@ $("esci").addEventListener("click", async () => {
   window.close(); // funziona solo se la scheda è stata aperta dal programma
 });
 
-// ---------- lista utenti
+// ---------- lista utenti (scheda Utenti e scheda Farmaci, con la stessa selezione)
+const LISTE_UTENTI = [["lista", "cerca"], ["listaF", "cercaF"]];
 function disegnaLista() {
-  const q = $("cerca").value.trim().toLowerCase();
-  const box = $("lista");
-  box.replaceChildren();
-  dati.filter((u) => u.utente.toLowerCase().includes(q)).forEach((u) => {
-    box.append(h("div", { class: "paz" + (u === corrente ? " sel" : ""), onclick: () => { corrente = u; disegnaTutto(); } },
-      h("span", { class: "nome" }, u.utente || "(senza nome)")));
-  });
+  for (const [lista, cerca] of LISTE_UTENTI) {
+    const q = $(cerca).value.trim().toLowerCase();
+    const box = $(lista);
+    box.replaceChildren();
+    dati.filter((u) => u.utente.toLowerCase().includes(q)).forEach((u) => {
+      box.append(h("div", { class: "paz" + (u === corrente ? " sel" : ""), onclick: () => { corrente = u; disegnaTutto(); } },
+        h("span", { class: "nome" }, u.utente || "(senza nome)")));
+    });
+  }
 }
-$("cerca").addEventListener("input", disegnaLista);
+LISTE_UTENTI.forEach(([, cerca]) => $(cerca).addEventListener("input", disegnaLista));
 
 $("nuovo").addEventListener("click", () => {
   const nome = prompt("Cognome e nome del nuovo utente:");
