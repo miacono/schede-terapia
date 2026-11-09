@@ -58,7 +58,9 @@ venv/bin/python src/editor.py
 
 Si apre il browser su `http://127.0.0.1:8000`. Opzioni: `--port 8080`, `--no-browser`, `--json altro_file.json`.
 
-Dalla pagina si può:
+L'editor ha due schede: **Farmaci** (le schede terapia, da `utenti.json`) e **Sostitutivi** (da `sostitutivi.json`, nella stessa cartella di `utenti.json`; se non esiste ancora si parte da un elenco vuoto).
+
+Dalla scheda *Farmaci* si può:
 
 - cercare, aggiungere ed eliminare pazienti;
 - modificare SERD, medico e psichiatra;
@@ -67,7 +69,18 @@ Dalla pagina si può:
 - **uscire** con il pulsante *Esci*, che spegne il server;
 - **generare il PDF** scegliendo pazienti e date (include anche le modifiche non ancora salvate).
 
-Ad ogni salvataggio il file corrente viene copiato nella cartella `backup/` accanto al file dei dati (quindi `data/backup/`) come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `data/backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
+Dalla scheda *Sostitutivi* si può:
+
+- creare, cercare ed eliminare schede sostitutivi (il nome del paziente si sceglie tra quelli delle schede terapia o si scrive a mano);
+- indicare farmaco, quantità iniziale, unità di misura e data di inizio: la fine (il martedì) si calcola da sola;
+- modificare gli orari (predefiniti 08.30, 13.00, 18.00, 23.00; si possono scrivere anche col punto) e la quantità standard di ciascuno;
+- cambiare la quantità di un singolo giorno nella tabella *giorno per giorno*, che mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
+- creare con un clic la scheda della **settimana successiva**, con gli stessi orari e quantità;
+- **generare il PDF** delle schede scelte.
+
+Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup.
+
+Ad ogni salvataggio il file corrente (`utenti.json` o `sostitutivi.json`) viene copiato nella cartella `backup/` accanto al file dei dati (quindi `data/backup/`) come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` o `sostitutivi_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `data/backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
 
 Il server ascolta **solo su `127.0.0.1`** e rifiuta richieste con un `Host` diverso da localhost: i dati non escono dal computer.
 
@@ -188,7 +201,7 @@ data/                   i dati (ignorati da git, tranne il template):
   utenti.json             dati reali
   sostitutivi.json.template  esempio di schede sostitutivi (inventate)
   sostitutivi.json        schede sostitutivi reali
-  backup/                 copie di sicurezza di utenti.json
+  backup/                 copie di sicurezza di utenti.json e sostitutivi.json
 requirements.txt        dipendenze Python
 ```
 

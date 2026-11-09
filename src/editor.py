@@ -14,7 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Server locale per modificare utenti.json e generare il PDF delle schede terapia.
+"""Server locale per modificare utenti.json e sostitutivi.json e generare i PDF
+delle schede terapia e delle schede sostitutivi.
 
 Uso:
     src/editor.py [--port 8000] [--json utenti.json] [--no-browser]
@@ -41,11 +42,13 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import genera_schede
+import genera_sostitutivi
 
 BASE = Path(__file__).resolve().parent  # cartella src/
 RADICE = BASE.parent  # cartella del programma
 DATI = RADICE / "data"
 JSON_PREDEFINITO = DATI / "utenti.json"
+SOSTITUTIVI = "sostitutivi.json"  # schede sostitutivi, accanto al file dei pazienti
 TEMPLATE = DATI / "utenti.json.template"
 HTML = BASE / "editor.html"
 MAX_BODY = 5 * 1024 * 1024
@@ -240,6 +243,7 @@ def prepara_dati(json_path):
 
 class Handler(BaseHTTPRequestHandler):
     json_path: Path = JSON_PREDEFINITO
+    sost_path: Path = DATI / SOSTITUTIVI
     port = 8000
 
     def log_message(self, fmt, *args):
@@ -287,38 +291,48 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     # -- rotte
+    def _archivio(self):
+        """(file, valida, completa) del file dati servito da self.path, oppure None."""
+        if self.path == "/api/utenti":
+            return self.json_path, valida, completa
+        if self.path == "/api/sostitutivi":
+            return self.sost_path, genera_sostitutivi.valida, genera_sostitutivi.completa
+        return None
+
     def do_GET(self):
         if not self._guard():
             return
         if self.path in ("/", "/index.html"):
-            self._send(200, HTML.read_bytes(), "text/html; charset=utf-8")
-        elif self.path == "/api/utenti":
-            try:
-                data = leggi_json(self.json_path)
-            except (UnicodeDecodeError, json.JSONDecodeError) as e:
-                return self._err(500, f"{self.json_path.name} non leggibile (deve essere JSON in UTF-8): {e}")
-            self._send(200, data)
-        else:
-            self._err(404, "non trovato")
+            return self._send(200, HTML.read_bytes(), "text/html; charset=utf-8")
+        archivio = self._archivio()
+        if not archivio:
+            return self._err(404, "non trovato")
+        try:
+            data = leggi_json(archivio[0])
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            return self._err(500, f"{archivio[0].name} non leggibile (deve essere JSON in UTF-8): {e}")
+        self._send(200, data)
 
     def do_PUT(self):
         if not self._guard():
             return
-        if self.path != "/api/utenti":
+        archivio = self._archivio()
+        if not archivio:
             return self._err(404, "non trovato")
+        percorso, controlla, normalizza = archivio
         try:
-            utenti = self._body()
-            errore = valida(utenti)
+            voci = self._body()
+            errore = controlla(voci)
             if errore:
                 return self._err(400, errore)
-            utenti = [completa(u) for u in utenti]
+            voci = [normalizza(v) for v in voci]
         except (ValueError, json.JSONDecodeError) as e:
             return self._err(400, str(e))
         try:
-            backup = salva_json(self.json_path, utenti)
+            backup = salva_json(percorso, voci)
         except OSError as e:
             return self._err(500, f"salvataggio non riuscito (il file è forse aperto in un altro programma?): {e}")
-        self._send(200, {"ok": True, "pazienti": len(utenti), "backup": f"{CARTELLA_BACKUP}/{backup.name}" if backup else None})
+        self._send(200, {"ok": True, "voci": len(voci), "backup": f"{CARTELLA_BACKUP}/{backup.name}" if backup else None})
 
     def do_POST(self):
         if not self._guard():
@@ -328,6 +342,8 @@ class Handler(BaseHTTPRequestHandler):
             # shutdown() blocca finché serve_forever() non termina: va chiamato da un altro thread
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return
+        if self.path == "/api/pdf-sostitutivi":
+            return self._pdf_sostitutivi()
         if self.path != "/api/pdf":
             return self._err(404, "non trovato")
         try:
@@ -352,6 +368,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, buf.getvalue(), "application/pdf",
                        {"Content-Disposition": f'attachment; filename="{nome}"'})
         except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
+            self._err(400, f"richiesta non valida: {e}")
+
+    def _pdf_sostitutivi(self):
+        try:
+            schede = self._body().get("schede")
+            errore = genera_sostitutivi.valida(schede)
+            if errore:
+                return self._err(400, errore)
+            if not schede:
+                return self._err(400, "nessuna scheda selezionata")
+            schede = [genera_sostitutivi.completa(s) for s in schede]
+            buf = io.BytesIO()
+            genera_sostitutivi.genera(schede, buf)
+            inizio = min(s["data_inizio"] for s in schede).replace("-", "")
+            self._send(200, buf.getvalue(), "application/pdf",
+                       {"Content-Disposition": f'attachment; filename="schede_sostitutivi_{inizio}.pdf"'})
+        except (KeyError, ValueError, TypeError, AttributeError, json.JSONDecodeError) as e:
             self._err(400, f"richiesta non valida: {e}")
 
 
@@ -394,6 +427,7 @@ def main():
     a = ap.parse_args()
 
     Handler.json_path = Path(a.json).resolve()
+    Handler.sost_path = Handler.json_path.parent / SOSTITUTIVI
     url = f"http://127.0.0.1:{a.port}"
     try:
         server = Server(("127.0.0.1", a.port), Handler)
@@ -416,7 +450,7 @@ def main():
             server.server_close()
             avvisa(f"Impossibile preparare la cartella dei dati: {e}\nNessun file è stato sovrascritto.")
             sys.exit(1)
-    print(f"Editor attivo su {url}  (Ctrl+C o pulsante Esci)\nDati: {Handler.json_path}")
+    print(f"Editor attivo su {url}  (Ctrl+C o pulsante Esci)\nDati: {Handler.json_path}\n      {Handler.sost_path}")
     if not a.no_browser:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
     try:

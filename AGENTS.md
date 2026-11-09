@@ -13,13 +13,13 @@ Il progetto genera le schede terapia in PDF per Villa Silenzi e offre un editor 
 |---|---|
 | `src/genera_schede.py` | generatore dei PDF (riga di comando e libreria, usata anche da `editor.py`) |
 | `src/genera_sostitutivi.py` | generatore dei PDF delle schede sostitutivi (riga di comando e libreria) |
-| `src/editor.py` | server locale (solo `127.0.0.1`): API su `utenti.json` e generazione PDF |
+| `src/editor.py` | server locale (solo `127.0.0.1`): API su `utenti.json` e `sostitutivi.json` e generazione dei PDF |
 | `src/editor.html` | interfaccia dell'editor (un solo file, senza dipendenze esterne) |
 | `avvia_editor.bat` | avvio su Windows (CRLF obbligatorio, vedi `.gitattributes`); non testabile su Linux |
 | `src/assets/logo.jpeg` | logo stampato sulle schede |
 | `data/utenti.json.template`, `data/sostitutivi.json.template` | esempi con dati inventati (gli unici file versionati in `data/`) |
 | `data/utenti.json`, `data/sostitutivi.json` | dati reali, **mai versionati** |
-| `data/backup/` | copie di sicurezza di `utenti.json`, **mai versionate** |
+| `data/backup/` | copie di sicurezza di `utenti.json` e `sostitutivi.json`, **mai versionate** |
 
 I dati stanno tutti in `data/`, il codice in `src/`. Al primo avvio con il file dati predefinito, `editor.py` sposta in `data/` l'`utenti.json` e la `backup/` della vecchia struttura (cartella principale) senza sovrascrivere nulla, e crea `data/utenti.json` dal template se manca (`prepara_dati`).
 

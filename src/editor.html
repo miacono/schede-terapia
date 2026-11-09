@@ -54,7 +54,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; }
   h2 { font-size: 15px; margin: 0 0 10px; }
   h3 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  #lista { max-height: 60vh; overflow: auto; margin: 10px 0; }
+  #lista, .lista { max-height: 60vh; overflow: auto; margin: 10px 0; }
   .paz { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
   .paz:hover { background: var(--bg); }
   .paz.sel { background: var(--accent); color: var(--accent-ink); }
@@ -73,21 +73,45 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   .selezione { max-height: 150px; overflow: auto; border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px;
                columns: 2 200px; margin-bottom: 10px; }
   .selezione label { color: var(--ink); font-size: 14px; margin: 2px 0; display: flex; gap: 6px; align-items: center; }
-  #msg { margin-top: 8px; min-height: 1.2em; font-size: 13px; }
-  #msg.err { color: var(--danger); }
-  #msg.ok { color: var(--ok); }
+  #msg, #msgS { margin-top: 8px; min-height: 1.2em; font-size: 13px; }
+  #msg.err, #msgS.err { color: var(--danger); }
+  #msg.ok, #msgS.ok { color: var(--ok); }
   .vuoto-pagina { text-align: center; color: var(--muted); padding: 60px 0; }
+  main[hidden] { display: none; }
+  nav.schede { display: flex; gap: 4px; }
+  nav.schede button { border-radius: 7px 7px 0 0; border-bottom-width: 3px; }
+  nav.schede button.attiva { border-bottom-color: var(--accent); font-weight: 600; }
+  input[type=number] { font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px;
+      background: var(--bg); color: var(--ink); width: 100%; }
+  input.errato { border-color: var(--danger); outline-color: var(--danger); }
+  .paz .sotto { display: block; font-size: 12px; opacity: .8; }
+  .info { font-size: 13px; color: var(--muted); margin: 6px 0; }
+  .info.err { color: var(--danger); font-weight: 600; }
+  .info.warn { color: var(--warn); font-weight: 600; }
+  .riga .orario { flex: 0 0 110px; }
+  .riga .qta-num { flex: 0 0 130px; }
+  .scorre { overflow-x: auto; }
+  table.piano { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+  table.piano th, table.piano td { border: 1px solid var(--line); padding: 3px; text-align: center; }
+  table.piano th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  table.piano input { width: 64px; padding: 4px; text-align: center; }
+  table.piano input.variato { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, var(--bg)); font-weight: 600; }
+  table.piano td.negativo { color: var(--danger); font-weight: 600; }
 </style>
 </head>
 <body>
 <header>
   <h1>Schede terapia · Villa Silenzi</h1>
+  <nav class="schede">
+    <button id="tab-terapia" data-vista="terapia">Farmaci</button>
+    <button id="tab-sostitutivi" data-vista="sostitutivi">Sostitutivi</button>
+  </nav>
   <span id="stato">Caricamento…</span>
   <button id="salva" class="primario" disabled>Salva modifiche</button>
   <button id="esci" title="Chiude l'editor">Esci</button>
 </header>
 
-<main>
+<main id="vista-terapia">
   <aside class="panel">
     <h2>Pazienti</h2>
     <input type="search" id="cerca" placeholder="Cerca…">
@@ -117,11 +141,38 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   </section>
 </main>
 
+<main id="vista-sostitutivi" hidden>
+  <aside class="panel">
+    <h2>Schede sostitutivi</h2>
+    <input type="search" id="cercaS" placeholder="Cerca paziente o farmaco…">
+    <div id="listaS" class="lista"></div>
+    <button id="nuovaS" style="width:100%">+ Nuova scheda</button>
+  </aside>
+
+  <section>
+    <div id="schedaS" class="panel"></div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Genera PDF sostitutivi</h2>
+      <label>Schede da stampare</label>
+      <div style="margin-bottom:6px">
+        <button id="selTutteS" class="icona">Tutte</button>
+        <button id="selNessunaS" class="icona">Nessuna</button>
+        <button id="selCorrenteS" class="icona">Solo quella aperta</button>
+      </div>
+      <div class="selezione" id="selezioneS"></div>
+      <button id="generaS" class="primario">Genera PDF</button>
+      <div id="msgS"></div>
+    </div>
+  </section>
+</main>
+
 <script>
 "use strict";
 let dati = [];          // elenco pazienti in modifica
 let corrente = null;    // oggetto paziente aperto
-let sporco = false;
+const sporco = { utenti: false, sostitutivi: false }; // file con modifiche non salvate
+const qualcosaDaSalvare = () => sporco.utenti || sporco.sostitutivi;
 const scelti = new Set(); // oggetti paziente selezionati per il PDF
 const FASCE = ["Mattino", "Pranzo", "Cena", "Notte"];
 
@@ -139,13 +190,13 @@ function h(tag, attrs = {}, ...figli) {
   return el;
 }
 
-function segnaSporco() {
-  sporco = true;
+function segnaSporco(quale = "utenti") {
+  sporco[quale] = true;
   $("salva").disabled = false;
   $("stato").textContent = "Modifiche non salvate";
   $("stato").className = "sporco";
 }
-window.addEventListener("beforeunload", (e) => { if (sporco) { e.preventDefault(); e.returnValue = ""; } });
+window.addEventListener("beforeunload", (e) => { if (qualcosaDaSalvare()) { e.preventDefault(); e.returnValue = ""; } });
 
 function messaggio(testo, tipo = "") { $("msg").textContent = testo; $("msg").className = tipo; }
 
@@ -163,30 +214,41 @@ async function api(url, opts) {
 async function carica() {
   try {
     dati = await (await api("/api/utenti")).json();
-    $("stato").textContent = `${dati.length} pazienti caricati`;
+    sostitutivi = ordinaSostitutivi(await (await api("/api/sostitutivi")).json());
+    $("stato").textContent = `${dati.length} pazienti, ${sostitutivi.length} schede sostitutivi`;
     $("stato").className = "";
     corrente = dati[0] || null;
+    correnteS = sostitutivi[0] || null;
     disegnaTutto();
+    disegnaTuttoS();
   } catch (e) {
     $("stato").textContent = "Errore: " + e.message;
   }
 }
 
+async function salvaUtenti() {
+  const esito = await (await api("/api/utenti", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dati) })).json();
+  sporco.utenti = false;
+  // ricarica per avere i dati normalizzati dal server, mantenendo la selezione per nome
+  const nome = corrente && corrente.paziente;
+  const nomiScelti = new Set([...scelti].map((u) => u.paziente));
+  dati = await (await api("/api/utenti")).json();
+  corrente = dati.find((u) => u.paziente === nome) || dati[0] || null;
+  scelti.clear();
+  dati.filter((u) => nomiScelti.has(u.paziente)).forEach((u) => scelti.add(u));
+  disegnaTutto();
+  return esito.backup;
+}
+
 $("salva").addEventListener("click", async () => {
   try {
-    const esito = await (await api("/api/utenti", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dati) })).json();
-    sporco = false;
+    const backup = [];
+    if (sporco.utenti) backup.push(await salvaUtenti());
+    if (sporco.sostitutivi) backup.push(await salvaSostitutivi());
     $("salva").disabled = true;
-    $("stato").textContent = "Salvato ✔" + (esito.backup ? ` (backup: ${esito.backup})` : "");
+    const copie = backup.filter(Boolean);
+    $("stato").textContent = "Salvato ✔" + (copie.length ? ` (backup: ${copie.join(", ")})` : "");
     $("stato").className = "ok";
-    // ricarica per avere i dati normalizzati dal server, mantenendo la selezione per nome
-    const nome = corrente && corrente.paziente;
-    const nomiScelti = new Set([...scelti].map((u) => u.paziente));
-    dati = await (await api("/api/utenti")).json();
-    corrente = dati.find((u) => u.paziente === nome) || dati[0] || null;
-    scelti.clear();
-    dati.filter((u) => nomiScelti.has(u.paziente)).forEach((u) => scelti.add(u));
-    disegnaTutto();
   } catch (e) {
     $("stato").textContent = "Non salvato: " + e.message;
     $("stato").className = "sporco";
@@ -195,9 +257,9 @@ $("salva").addEventListener("click", async () => {
 
 // ---------- uscita
 $("esci").addEventListener("click", async () => {
-  if (sporco && !confirm("Ci sono modifiche non salvate. Uscire senza salvare?")) return;
-  if (!sporco && !confirm("Chiudere l'editor?")) return;
-  sporco = false; // niente avviso del browser alla chiusura
+  if (qualcosaDaSalvare() && !confirm("Ci sono modifiche non salvate. Uscire senza salvare?")) return;
+  if (!qualcosaDaSalvare() && !confirm("Chiudere l'editor?")) return;
+  sporco.utenti = sporco.sostitutivi = false; // niente avviso del browser alla chiusura
   try { await api("/api/esci", { method: "POST" }); } catch (e) { /* il server può chiudersi prima di rispondere */ }
   document.body.replaceChildren(h("div", { class: "vuoto-pagina" },
     h("h2", {}, "Editor chiuso"), h("p", {}, "Puoi chiudere questa scheda.")));
@@ -348,7 +410,7 @@ $("genera").addEventListener("click", async () => {
     document.body.append(a); a.click(); a.remove();
     const giorni = $("d2").value ? Math.round((new Date($("d2").value) - new Date(d1)) / 864e5) + 1 : 1;
     messaggio(`Creato ${nome}: ${utenti.length} pazienti × ${giorni} giorni = ${utenti.length * giorni * 2} pagine.` +
-      (sporco ? " (Include le modifiche non ancora salvate.)" : ""), "ok");
+      (sporco.utenti ? " (Include le modifiche non ancora salvate.)" : ""), "ok");
   } catch (e) {
     messaggio("Errore: " + e.message, "err");
   } finally {
@@ -357,6 +419,304 @@ $("genera").addEventListener("click", async () => {
 });
 
 function disegnaTutto() { disegnaLista(); disegnaScheda(); disegnaSelezione(); }
+
+// ================================================================ sostitutivi
+// Le regole (fine al martedì, saldo, variazioni) sono le stesse di src/genera_sostitutivi.py.
+let sostitutivi = [];   // elenco schede sostitutivi in modifica
+let correnteS = null;   // scheda aperta
+const sceltiS = new Set();
+const ORARI_PREDEFINITI = ["08:30", "13:00", "18:00", "23:00"];
+const MARTEDI = 2; // Date.getDay()
+const GIORNI = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+
+const pad = (n) => String(n).padStart(2, "0");
+const isoData = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const daIso = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; };
+const breve = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+const lunga = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+const qtaStr = (q) => String(q).replace(".", ",");
+const chiaveS = (s) => `${s.paziente}|${s.farmaco}|${s.data_inizio}`;
+const oggi = () => isoData(new Date());
+
+// "8.30", "8:30", "0830" -> "08:30"; null se non è un orario valido
+function normalizzaOrario(s) {
+  const m = /^\s*(\d{1,2})[.:,]?(\d{2})\s*$/.exec(s || "");
+  if (!m || +m[1] > 23 || +m[2] > 59) return null;
+  return `${pad(+m[1])}:${m[2]}`;
+}
+const minuti = (o) => { const [a, b] = o.split(":"); return +a * 60 + +b; };
+
+// giorni della scheda: dalla data di inizio al primo martedì compreso
+function periodoS(s) {
+  const inizio = daIso(s.data_inizio);
+  if (!inizio) return [];
+  const n = (MARTEDI - inizio.getDay() + 7) % 7;
+  return Array.from({ length: n + 1 }, (_, i) => new Date(inizio.getFullYear(), inizio.getMonth(), inizio.getDate() + i));
+}
+
+function orariValidi(s) { return s.orari.filter((o) => normalizzaOrario(o.orario)).sort((a, b) => minuti(a.orario) - minuti(b.orario)); }
+
+function quantitaDel(s, giorno, o) {
+  const v = (s.variazioni || {})[isoData(giorno)];
+  return v && o.orario in v ? v[o.orario] : o.quantita;
+}
+
+// [{giorno, righe: [{orario, standard, quantita, saldo}], totale, saldo}]
+function pianoS(s) {
+  let saldo = Number(s.quantita_iniziale) || 0;
+  const orari = orariValidi(s);
+  return periodoS(s).map((giorno) => {
+    let totale = 0;
+    const righe = orari.map((o) => {
+      const q = Number(quantitaDel(s, giorno, o)) || 0;
+      totale += q;
+      saldo = Math.round((saldo - q) * 1000) / 1000;
+      return { orario: o.orario, standard: o.quantita, quantita: q, saldo };
+    });
+    return { giorno, righe, totale: Math.round(totale * 1000) / 1000, saldo };
+  });
+}
+
+function ordinaSostitutivi(arr) {
+  return arr.sort((a, b) => (b.data_inizio || "").localeCompare(a.data_inizio || "") || a.paziente.localeCompare(b.paziente, "it"));
+}
+
+function nuovaScheda(da = {}) {
+  return {
+    paziente: da.paziente || "", farmaco: da.farmaco || "", unita: da.unita || "mg",
+    quantita_iniziale: da.quantita_iniziale ?? null, data_inizio: da.data_inizio || oggi(),
+    orari: (da.orari || ORARI_PREDEFINITI.map((orario) => ({ orario, quantita: 0 }))).map((o) => ({ ...o })),
+    variazioni: {},
+  };
+}
+
+async function salvaSostitutivi() {
+  const esito = await (await api("/api/sostitutivi", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sostitutivi) })).json();
+  sporco.sostitutivi = false;
+  const aperta = correnteS && chiaveS(correnteS);
+  const chiaviScelte = new Set([...sceltiS].map(chiaveS));
+  sostitutivi = ordinaSostitutivi(await (await api("/api/sostitutivi")).json());
+  correnteS = sostitutivi.find((s) => chiaveS(s) === aperta) || sostitutivi[0] || null;
+  sceltiS.clear();
+  sostitutivi.filter((s) => chiaviScelte.has(chiaveS(s))).forEach((s) => sceltiS.add(s));
+  disegnaTuttoS();
+  return esito.backup;
+}
+
+const modificaS = () => segnaSporco("sostitutivi");
+
+// ---------- lista
+function etichettaS(s) {
+  const p = periodoS(s);
+  return [s.paziente || "(paziente da indicare)", (s.farmaco || "farmaco?") + (p.length ? ` · ${breve(p[0])}–${breve(p[p.length - 1])}` : "")];
+}
+
+function disegnaListaS() {
+  const q = $("cercaS").value.trim().toLowerCase();
+  const box = $("listaS");
+  box.replaceChildren();
+  sostitutivi.filter((s) => `${s.paziente} ${s.farmaco}`.toLowerCase().includes(q)).forEach((s) => {
+    const [titolo, sotto] = etichettaS(s);
+    box.append(h("div", { class: "paz" + (s === correnteS ? " sel" : ""), onclick: () => { correnteS = s; disegnaTuttoS(); } },
+      h("span", { class: "nome" }, titolo, h("span", { class: "sotto" }, sotto))));
+  });
+  if (!sostitutivi.length) box.append(h("div", { class: "vuoto" }, "Nessuna scheda."));
+}
+$("cercaS").addEventListener("input", disegnaListaS);
+
+$("nuovaS").addEventListener("click", () => {
+  const s = nuovaScheda();
+  sostitutivi.unshift(s);
+  correnteS = s;
+  modificaS();
+  disegnaTuttoS();
+  $("schedaS").querySelector("input")?.focus();
+});
+
+// ---------- scheda
+function campoS(etichetta, s, chiave, attrs = {}, dopo = () => {}) {
+  const numero = attrs.type === "number";
+  return h("div", {}, h("label", {}, etichetta),
+    h("input", { type: "text", value: s[chiave] ?? "", ...attrs, oninput: (e) => {
+      const v = e.target.value;
+      s[chiave] = numero ? (v === "" ? null : Number(v)) : v;
+      modificaS(); dopo();
+    } }));
+}
+
+function disegnaSchedaS() {
+  const box = $("schedaS");
+  box.replaceChildren();
+  const s = correnteS;
+  if (!s) { box.append(h("div", { class: "vuoto-pagina" }, "Nessuna scheda sostitutivi. Creane una dal pulsante a sinistra.")); return; }
+
+  const nomiPazienti = [...new Set(dati.map((u) => u.paziente))];
+  const farmaci = [...new Set(sostitutivi.map((x) => x.farmaco).filter(Boolean))];
+  const periodoBox = h("div", { class: "info" });
+  const pianoBox = h("div");
+  const aggiorna = () => { disegnaPeriodo(s, periodoBox); disegnaPiano(s, pianoBox); disegnaListaS(); disegnaSelezioneS(); };
+
+  box.append(
+    h("datalist", { id: "pazientiS" }, nomiPazienti.map((n) => h("option", { value: n }))),
+    h("datalist", { id: "farmaciS" }, farmaci.map((n) => h("option", { value: n }))),
+    h("datalist", { id: "unitaS" }, ["mg", "ml", "cp"].map((n) => h("option", { value: n }))),
+    h("div", { style: "display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap" },
+      h("div", { style: "flex:1;min-width:200px" }, campoS("Cognome e nome", s, "paziente", { list: "pazientiS", placeholder: "es. ROSSI MARIO" }, aggiorna)),
+      h("button", { title: "Nuova scheda per la settimana successiva, con gli stessi orari e quantità", onclick: () => {
+        const p = periodoS(s);
+        if (!p.length) return;
+        const fine = p[p.length - 1];
+        const n = nuovaScheda({ ...s, data_inizio: isoData(new Date(fine.getFullYear(), fine.getMonth(), fine.getDate() + 1)) });
+        sostitutivi.unshift(n); correnteS = n; modificaS(); disegnaTuttoS();
+      } }, "Settimana successiva"),
+      h("button", { class: "pericolo", onclick: () => {
+        if (!confirm(`Eliminare la scheda sostitutivi di ${s.paziente || "questo paziente"}?`)) return;
+        sostitutivi.splice(sostitutivi.indexOf(s), 1); sceltiS.delete(s); correnteS = sostitutivi[0] || null; modificaS(); disegnaTuttoS();
+      } }, "Elimina scheda")),
+    h("div", { class: "griglia", style: "margin-top:10px" },
+      campoS("Farmaco", s, "farmaco", { list: "farmaciS", placeholder: "nome del farmaco" }, aggiorna),
+      campoS("Quantità iniziale", s, "quantita_iniziale", { type: "number", min: "0", step: "any" }, aggiorna),
+      campoS("Unità di misura", s, "unita", { list: "unitaS", placeholder: "mg" }, aggiorna),
+      h("div", {}, h("label", {}, "Data di inizio"),
+        h("input", { type: "date", value: s.data_inizio, oninput: (e) => { s.data_inizio = e.target.value; modificaS(); aggiorna(); } }))),
+    periodoBox,
+    h("h3", {}, "Orari e quantità standard"),
+    h("p", { class: "vuoto", style: "margin-top:0" }, "La quantità di ogni orario vale per tutti i giorni, salvo le modifiche giorno per giorno qui sotto. Gli orari con quantità 0 vengono stampati con «--»."),
+    elencoOrari(s, aggiorna),
+    h("h3", {}, "Somministrazione giorno per giorno"),
+    h("p", { class: "vuoto", style: "margin-top:0" }, "Cambia una cella per modificare la quantità solo per quel giorno; le celle modificate sono evidenziate. Svuota la cella per tornare alla quantità standard."),
+    pianoBox);
+  aggiorna();
+}
+
+function disegnaPeriodo(s, box) {
+  const p = periodoS(s);
+  box.className = "info";
+  box.textContent = p.length
+    ? `Dal ${GIORNI[p[0].getDay()]} ${lunga(p[0])} al martedì ${lunga(p[p.length - 1])}: ${p.length} ${p.length === 1 ? "giorno" : "giorni"}.`
+    : "Indica la data di inizio.";
+}
+
+function elencoOrari(s, aggiorna) {
+  const box = h("div");
+  const disegna = () => {
+    box.replaceChildren();
+    s.orari.forEach((o, i) => {
+      const inp = h("input", { type: "text", class: "orario" + (normalizzaOrario(o.orario) ? "" : " errato"), value: o.orario, placeholder: "hh.mm",
+        onchange: (e) => {
+          const nuovo = normalizzaOrario(e.target.value);
+          const vecchio = o.orario;
+          if (!nuovo) { o.orario = e.target.value; e.target.classList.add("errato"); modificaS(); aggiorna(); return; }
+          if (s.orari.some((x) => x !== o && x.orario === nuovo)) { alert(`L'orario ${nuovo} c'è già.`); e.target.value = vecchio; return; }
+          o.orario = nuovo;
+          // le variazioni seguono l'orario rinominato
+          for (const v of Object.values(s.variazioni || {})) if (vecchio in v) { v[nuovo] = v[vecchio]; delete v[vecchio]; }
+          modificaS(); disegna(); aggiorna();
+        } });
+      box.append(h("div", { class: "riga" }, inp,
+        h("input", { type: "number", class: "qta-num", min: "0", step: "any", value: o.quantita, title: "Quantità standard",
+          oninput: (e) => { o.quantita = e.target.value === "" ? 0 : Number(e.target.value); modificaS(); aggiorna(); } }),
+        h("span", { class: "vuoto" }, s.unita || "mg"),
+        h("button", { class: "icona pericolo", title: "Elimina orario", disabled: s.orari.length === 1, onclick: () => {
+          s.orari.splice(i, 1);
+          for (const v of Object.values(s.variazioni || {})) delete v[o.orario];
+          modificaS(); disegna(); aggiorna();
+        } }, "✕")));
+    });
+    box.append(h("div", { style: "display:flex;gap:6px;flex-wrap:wrap" },
+      h("button", { onclick: () => { s.orari.push({ orario: "", quantita: 0 }); modificaS(); disegna(); box.querySelector(".riga:last-of-type .orario")?.focus(); } }, "+ Aggiungi orario"),
+      h("button", { onclick: () => {
+        if (!confirm("Ripristinare gli orari predefiniti (08.30, 13.00, 18.00, 23.00)? Le quantità degli orari che restano non cambiano.")) return;
+        const vecchie = Object.fromEntries(s.orari.map((o) => [o.orario, o.quantita]));
+        s.orari = ORARI_PREDEFINITI.map((orario) => ({ orario, quantita: vecchie[orario] ?? 0 }));
+        modificaS(); disegna(); aggiorna();
+      } }, "Orari predefiniti")));
+  };
+  disegna();
+  return box;
+}
+
+function disegnaPiano(s, box) {
+  box.replaceChildren();
+  const piano = pianoS(s);
+  const orari = orariValidi(s);
+  if (!piano.length || !orari.length) { box.append(h("div", { class: "vuoto" }, "Indica la data di inizio e almeno un orario valido.")); return; }
+  const cella = (giorno, o) => {
+    const iso = isoData(giorno);
+    const q = quantitaDel(s, giorno, o);
+    return h("td", {}, h("input", { type: "number", min: "0", step: "any", value: q, class: q !== o.quantita ? "variato" : "",
+      title: `Standard: ${qtaStr(o.quantita)} ${s.unita || "mg"}`,
+      onchange: (e) => {
+        s.variazioni = s.variazioni || {};
+        const v = e.target.value === "" ? o.quantita : Number(e.target.value);
+        const giornata = s.variazioni[iso] || {};
+        if (v === o.quantita) delete giornata[o.orario]; else giornata[o.orario] = v;
+        if (Object.keys(giornata).length) s.variazioni[iso] = giornata; else delete s.variazioni[iso];
+        modificaS(); disegnaPiano(s, box);
+      } }));
+  };
+  box.append(h("div", { class: "scorre" }, h("table", { class: "piano" },
+    h("thead", {}, h("tr", {}, h("th", {}, "Ora"), piano.map((g) => h("th", {}, GIORNI[g.giorno.getDay()], h("br"), breve(g.giorno))))),
+    h("tbody", {},
+      orari.map((o) => h("tr", {}, h("th", {}, o.orario.replace(":", ".")), piano.map((g) => cella(g.giorno, o)))),
+      h("tr", {}, h("th", {}, "Totale"), piano.map((g) => h("td", {}, qtaStr(g.totale)))),
+      h("tr", {}, h("th", {}, "Saldo"), piano.map((g) => h("td", { class: g.saldo < 0 ? "negativo" : "" }, qtaStr(g.saldo))))))));
+
+  const finale = piano[piano.length - 1].saldo;
+  const u = s.unita || "mg";
+  if (s.quantita_iniziale == null) box.append(h("div", { class: "info err" }, "Indica la quantità iniziale."));
+  else if (finale < 0) box.append(h("div", { class: "info err" }, `La quantità iniziale non basta: mancano ${qtaStr(-finale)} ${u}.`));
+  else if (finale > 0) box.append(h("div", { class: "info warn" }, `A fine scheda avanzano ${qtaStr(finale)} ${u}.`));
+  else box.append(h("div", { class: "info" }, "La quantità iniziale copre esattamente il periodo."));
+}
+
+// ---------- PDF
+function disegnaSelezioneS() {
+  const box = $("selezioneS");
+  box.replaceChildren();
+  sostitutivi.forEach((s) => box.append(h("label", {},
+    h("input", { type: "checkbox", checked: sceltiS.has(s) ? "" : null, onchange: (e) => { e.target.checked ? sceltiS.add(s) : sceltiS.delete(s); } }),
+    etichettaS(s).join(" — "))));
+}
+$("selTutteS").onclick = () => { sostitutivi.forEach((s) => sceltiS.add(s)); disegnaSelezioneS(); };
+$("selNessunaS").onclick = () => { sceltiS.clear(); disegnaSelezioneS(); };
+$("selCorrenteS").onclick = () => { sceltiS.clear(); if (correnteS) sceltiS.add(correnteS); disegnaSelezioneS(); };
+
+$("generaS").addEventListener("click", async () => {
+  const msg = (testo, tipo = "") => { $("msgS").textContent = testo; $("msgS").className = tipo; };
+  const schede = sostitutivi.filter((s) => sceltiS.has(s));
+  if (!schede.length) return msg("Seleziona almeno una scheda.", "err");
+  $("generaS").disabled = true;
+  msg("Generazione in corso…");
+  try {
+    const r = await api("/api/pdf-sostitutivi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ schede }) });
+    const blob = await r.blob();
+    const nome = (r.headers.get("Content-Disposition") || "").match(/filename="(.+?)"/)?.[1] || "schede_sostitutivi.pdf";
+    const a = h("a", { href: URL.createObjectURL(blob), download: nome });
+    document.body.append(a); a.click(); a.remove();
+    msg(`Creato ${nome}: ${schede.length} ${schede.length === 1 ? "scheda" : "schede"}.` +
+      (sporco.sostitutivi ? " (Include le modifiche non ancora salvate.)" : ""), "ok");
+  } catch (e) {
+    msg("Errore: " + e.message, "err");
+  } finally {
+    $("generaS").disabled = false;
+  }
+});
+
+function disegnaTuttoS() { disegnaListaS(); disegnaSchedaS(); disegnaSelezioneS(); }
+
+// ---------- navigazione tra le schede del programma
+function mostraVista(nome) {
+  for (const v of ["terapia", "sostitutivi"]) {
+    $("vista-" + v).hidden = v !== nome;
+    $("tab-" + v).classList.toggle("attiva", v === nome);
+  }
+  if (location.hash !== "#" + nome) history.replaceState(null, "", "#" + nome);
+  if (nome === "sostitutivi") disegnaSchedaS(); // aggiorna i suggerimenti dei nomi dei pazienti
+}
+document.querySelectorAll("nav.schede button").forEach((b) => b.addEventListener("click", () => mostraVista(b.dataset.vista)));
+mostraVista(location.hash === "#sostitutivi" ? "sostitutivi" : "terapia");
+
 
 $("d1").value = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 carica();
