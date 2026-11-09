@@ -128,7 +128,7 @@ Oltre alle schede terapia, il programma gestisce le **schede sostitutivi**: il f
 
 Per ogni scheda si indicano paziente, farmaco, unità di misura, quantità iniziale, data di inizio e gli **orari** con la quantità di ciascuno (predefiniti 08:30, 13:00, 18:00 e 23:00, modificabili). La scheda **finisce sempre di martedì**: va dalla data di inizio al primo martedì (compreso; se l'inizio è di martedì, la scheda dura un giorno). Per ogni giorno si può cambiare la quantità di un orario (*variazioni*), senza toccare gli altri giorni.
 
-Il PDF ha una pagina per scheda (di più solo se gli orari sono molti): per ogni giorno e orario la quantità (`--` se nulla), lo spazio per la firma e il saldo rimasto. Un saldo negativo, cioè una quantità iniziale che non basta, è stampato in grassetto.
+Il PDF ha una pagina per scheda (di più solo se gli orari sono molti): per ogni giorno e orario la quantità (`--` se nulla), lo spazio per la firma dell'operatore e dell'utente e il saldo rimasto. Un saldo negativo, cioè una quantità iniziale che non basta, è stampato in grassetto.
 
 ```bash
 venv/bin/python src/genera_sostitutivi.py NOMI [-o file.pdf] [--json data/sostitutivi.json]

@@ -17,8 +17,8 @@
 """Genera il PDF delle schede sostitutivi (foglio firme con il saldo del farmaco).
 
 Ogni scheda va dalla data di inizio al primo martedì (compreso): per ogni giorno e
-per ogni orario riporta la quantità da somministrare, lo spazio per la firma e il
-saldo rimasto, calcolato dalla quantità iniziale.
+per ogni orario riporta la quantità da somministrare, lo spazio per la firma
+dell'operatore e dell'utente e il saldo rimasto, calcolato dalla quantità iniziale.
 
 Uso:
     src/genera_sostitutivi.py NOMI [-o FILE.pdf] [--json sostitutivi.json]
@@ -49,8 +49,8 @@ GIORNI = ("lun", "mar", "mer", "gio", "ven", "sab", "dom")
 
 W, H = A4
 X_INIZIO = X0 - 8  # la tabella è larga quanto le tabelle "note" e "al bisogno" delle schede terapia
-# Separatori interni delle colonne DATA | ORA | Q.TA' | FIRMA | SALDO.
-COLONNE = (165, 210, 256, 470)
+# Separatori interni delle colonne DATA | ORA | Q.TA' | FIRMA OPERATORE | FIRMA UTENTE | SALDO.
+COLONNE = (165, 210, 256, 363, 470)  # le due colonne delle firme sono larghe uguale (107 pt)
 ALTEZZA_MAX, ALTEZZA_MIN = 20, 13  # altezza delle righe; sotto il minimo si passa a più pagine
 # Bordo superiore della tabella: sotto intestazione (H - 125), titolo e campi (60) e header di colonna (12).
 Y_TABELLA = H - 125 - 60 - 12
@@ -206,7 +206,7 @@ def testata(c, s, pagina, pagine):
 def tabella_giorni(c, ytop, giorni, h, unita):
     """Una fascia di righe per giorno: la data occupa tutta la fascia, le righe sono gli orari."""
     xs = (X_INIZIO,) + COLONNE + (X1,)
-    for i, lab in enumerate(("DATA", "ORA", f"Q.TA' ({unita})", "FIRMA", "SALDO")):
+    for i, lab in enumerate(("DATA", "ORA", f"Q.TA' ({unita})", "FIRMA OPERATORE", "FIRMA UTENTE", "SALDO")):
         testo(c, (xs[i] + xs[i + 1]) / 2, ytop + 4, lab, 7, "Helvetica-Oblique", "center")
     size = min(9.5, h - 6)
     y = ytop
@@ -222,7 +222,7 @@ def tabella_giorni(c, ytop, giorni, h, unita):
             yt = y - i * h - h / 2 - size * 0.35
             testo(c, (xs[1] + xs[2]) / 2, yt, orario.replace(":", "."), size, align="center")
             testo(c, (xs[2] + xs[3]) / 2, yt, qta_str(q) if q else "--", size, align="center")
-            testo(c, (xs[4] + xs[5]) / 2, yt, qta_str(saldo), size,
+            testo(c, (xs[5] + xs[6]) / 2, yt, qta_str(saldo), size,
                   "Helvetica-Bold" if saldo < 0 else "Helvetica", "center")
         c.setLineWidth(THICK * 0.7)  # separa i giorni
         c.line(X_INIZIO, ybot, X1, ybot)
