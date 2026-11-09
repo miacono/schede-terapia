@@ -189,7 +189,8 @@ def giorno_str(g):
 # ---------------------------------------------------------------- disegno
 def testata(c, s, pagina, pagine):
     giorni = periodo(s)
-    y = intestazione(c, s["paziente"], f"{giorni[0]:%d/%m/%Y} - {giorni[-1]:%d/%m/%Y}")
+    data = f"{giorni[0]:%d/%m/%Y}" + (f" - {giorni[-1]:%d/%m/%Y}" if len(giorni) > 1 else "")
+    y = intestazione(c, s["paziente"], data)
     titolo = "SCHEDA SOSTITUTIVO" + (f" ({pagina}/{pagine})" if pagine > 1 else "")
     testo(c, (X_INIZIO + X1) / 2, y - 14, titolo, 11, "Helvetica-Bold", "center")
     y -= 38
