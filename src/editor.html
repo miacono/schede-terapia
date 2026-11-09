@@ -592,7 +592,9 @@ function disegnaSchedaS() {
 function disegnaPeriodo(s, box) {
   const p = periodoS(s);
   box.className = "info";
-  box.textContent = p.length
+  box.textContent = p.length === 1
+    ? `Solo martedì ${lunga(p[0])}: la scheda dura un giorno.`
+    : p.length
     ? `Dal ${GIORNI[p[0].getDay()]} ${lunga(p[0])} al martedì ${lunga(p[p.length - 1])}: ${p.length} ${p.length === 1 ? "giorno" : "giorni"}.`
     : "Indica la data di inizio.";
 }
