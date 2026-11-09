@@ -45,9 +45,9 @@ Non ci sono test automatici: si verifica generando un PDF dal template e guardan
 
 Qualunque informazione riferibile a una persona reale, anche se incompleta o "mascherata":
 
-- pazienti: nome, cognome, **solo il cognome o solo il nome**, iniziali, soprannomi, date di nascita, codici, numeri di protocollo;
-- terapie: farmaci, dosaggi, orari, note e terapie al bisogno **di un paziente reale**, anche senza il nome (uno schema terapeutico può identificare);
-- operatori sanitari e servizi: nomi di medici, psichiatri, SERD e sedi collegati a pazienti reali;
+- utenti: nome, cognome, **solo il cognome o solo il nome**, iniziali, soprannomi, date di nascita, codici, numeri di protocollo;
+- terapie: farmaci, dosaggi, orari, note e terapie al bisogno **di un utente reale**, anche senza il nome (uno schema terapeutico può identificare);
+- operatori sanitari e servizi: nomi di medici, psichiatri, SERD e sedi collegati a utenti reali;
 - contenuto di `data/` (tranne il template), di `sorgenti/`, dei PDF generati, dei backup e di qualunque loro estratto, screenshot o riga di log.
 
 ### Dove è vietato
@@ -58,7 +58,7 @@ Documentazione (`README.md`, `AGENTS.md`, `CLAUDE.md`), esempi e docstring, **co
 
 - Usa **solo dati inventati e palesemente fittizi**, come in `data/utenti.json.template`: `ROSSI MARIO`, `VERDI ANNA`, `Serd Esempio`, `Farmaco A 10 mg`. Non usare cognomi veri "cambiando una lettera" né combinazioni prese dai dati reali.
 - Prova tutto ciò che scrive (salvataggi, backup, pulizie) su una **copia** dei dati (`--json /tmp/.../utenti.json`), mai su `data/utenti.json`. Per provare lo spostamento dei dati, copia `src/` in una cartella di prova con dati inventati.
-- Se ti serve un caso realistico, costruiscilo da zero nel template; non copiarlo da un paziente.
+- Se ti serve un caso realistico, costruiscilo da zero nel template; non copiarlo da un utente.
 - Nelle risposte, nei log e nei messaggi d'errore che scrivi, non riportare dati reali che non servono.
 
 ### Prima di ogni commit
@@ -70,7 +70,7 @@ Documentazione (`README.md`, `AGENTS.md`, `CLAUDE.md`), esempi e docstring, **co
    python3 - <<'EOF'
    import json, re, subprocess
    parole = {w for u in json.load(open("data/utenti.json", encoding="utf-8-sig"))
-             for w in re.split(r"[\s']+", u["paziente"]) if len(w) > 3}
+             for w in re.split(r"[\s']+", u.get("utente", u.get("paziente", ""))) if len(w) > 3}
    diff = subprocess.run(["git", "diff", "--cached"], capture_output=True, text=True).stdout
    trovate = sorted(w for w in parole if re.search(rf"\b{re.escape(w)}\b", diff, re.I))
    print("ATTENZIONE, possibili dati reali:", trovate) if trovate else print("nessun riscontro")

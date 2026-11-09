@@ -5,14 +5,14 @@ Strumenti per gestire e stampare le **schede terapia** del Servizio Residenziale
 Le schede sono descritte in un unico file, `data/utenti.json`. Da lì si può:
 
 - **modificare** i dati con un editor web locale, senza conoscere la sintassi JSON;
-- **generare il PDF** delle schede, un foglio fronte/retro per paziente e per giorno.
+- **generare il PDF** delle schede, un foglio fronte/retro per utente e per giorno.
 
 Ogni scheda ha due facciate:
 
 | Facciata | Contenuto |
 |---|---|
-| Fronte | logo e titolo, paziente e data, somministrazioni (Mattino, Pranzo, Cena, Notte ed eventuali altre fasce), SERD inviante, medico SERD, psichiatra CT, note |
-| Retro | logo e titolo, paziente e data, terapia al bisogno, tabella di somministrazione della terapia al bisogno |
+| Fronte | logo e titolo, utente e data, somministrazioni (Mattino, Pranzo, Cena, Notte ed eventuali altre fasce), SERD inviante, medico SERD, psichiatra CT, note |
+| Retro | logo e titolo, utente e data, terapia al bisogno, tabella di somministrazione della terapia al bisogno |
 
 > ⚠️ **Privacy.** `data/utenti.json` contiene dati sanitari di persone reali. Tutta la cartella `data/` (tranne il template) è esclusa dal repository tramite `.gitignore`, insieme ai PDF generati. Non committarli mai.
 
@@ -62,23 +62,23 @@ L'editor ha due schede: **Farmaci** (le schede terapia, da `utenti.json`) e **So
 
 Dalla scheda *Farmaci* si può:
 
-- cercare, aggiungere ed eliminare pazienti;
+- cercare, aggiungere ed eliminare utenti;
 - modificare SERD, medico e psichiatra;
 - aggiungere, togliere e riordinare fasce, farmaci, note e righe "al bisogno";
 - **salvare** le modifiche in `data/utenti.json`;
 - **uscire** con il pulsante *Esci*, che spegne il server;
-- **generare il PDF** scegliendo pazienti e date (include anche le modifiche non ancora salvate).
+- **generare il PDF** scegliendo utenti e date (include anche le modifiche non ancora salvate).
 
 Dalla scheda *Sostitutivi* si può:
 
-- creare, cercare ed eliminare schede sostitutivi; il paziente si sceglie tra quelli della scheda *Farmaci*, dove si aggiungono i pazienti nuovi;
+- creare, cercare ed eliminare schede sostitutivi; l'utente si sceglie tra quelli della scheda *Farmaci*, dove si aggiungono gli utenti nuovi;
 - indicare farmaco, quantità iniziale, unità di misura e data di inizio: la fine (il martedì) si calcola da sola;
 - modificare gli orari (predefiniti 08.30, 13.00, 18.00, 23.00; si possono scrivere anche col punto) e la quantità standard di ciascuno;
 - cambiare la quantità di un singolo giorno nella tabella *giorno per giorno*, che mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
 - creare con un clic la scheda della **settimana successiva**, con gli stessi orari e quantità;
 - **generare il PDF** delle schede scelte.
 
-Rinominando un paziente nella scheda *Farmaci* si aggiornano anche le sue schede sostitutivi; non lo si può eliminare finché ne ha. Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup, e rifiuta schede sostitutivi di pazienti che non ci sono nelle schede farmaci.
+Rinominando un utente nella scheda *Farmaci* si aggiornano anche le sue schede sostitutivi; non lo si può eliminare finché ne ha. Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup, e rifiuta schede sostitutivi di utenti che non ci sono nelle schede farmaci.
 
 Ad ogni salvataggio il file corrente (`utenti.json` o `sostitutivi.json`) viene copiato nella cartella `backup/` accanto al file dei dati (quindi `data/backup/`) come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` o `sostitutivi_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `data/backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
 
@@ -111,14 +111,14 @@ venv/bin/python src/genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o file.pdf] 
 Esempi:
 
 ```bash
-# tutti i pazienti, dal 22 al 24 settembre
+# tutti gli utenti, dal 22 al 24 settembre
 venv/bin/python src/genera_schede.py TUTTI 22/09/2026 24/09/2026
 
-# solo due pazienti, un giorno
+# solo due utenti, un giorno
 venv/bin/python src/genera_schede.py "rossi, verdi" 22/09/2026
 ```
 
-Il PDF è ordinato per giorno: per ogni giorno, per ogni paziente, fronte e retro (un foglio fronte/retro per paziente).
+Il PDF è ordinato per giorno: per ogni giorno, per ogni utente, fronte e retro (un foglio fronte/retro per utente).
 
 Le fasce **Mattino, Pranzo, Cena e Notte** vengono sempre stampate, anche vuote, da compilare a mano. Le fasce aggiuntive (per esempio `16:00`) vengono inserite nel punto corretto in base all'orario.
 
@@ -126,7 +126,7 @@ Le fasce **Mattino, Pranzo, Cena e Notte** vengono sempre stampate, anche vuote,
 
 Oltre alle schede terapia, il programma gestisce le **schede sostitutivi**: il foglio firme di un farmaco sostitutivo consegnato in quantità fissa, con il saldo che scala a ogni somministrazione. I dati stanno in un file separato, `data/sostitutivi.json` (esempio: `data/sostitutivi.json.template`).
 
-Per ogni scheda si indicano paziente, farmaco, unità di misura, quantità iniziale, data di inizio e gli **orari** con la quantità di ciascuno (predefiniti 08:30, 13:00, 18:00 e 23:00, modificabili). La scheda **finisce sempre di martedì**: va dalla data di inizio al primo martedì (compreso; se l'inizio è di martedì, la scheda dura un giorno). Per ogni giorno si può cambiare la quantità di un orario (*variazioni*), senza toccare gli altri giorni.
+Per ogni scheda si indicano utente, farmaco, unità di misura, quantità iniziale, data di inizio e gli **orari** con la quantità di ciascuno (predefiniti 08:30, 13:00, 18:00 e 23:00, modificabili). La scheda **finisce sempre di martedì**: va dalla data di inizio al primo martedì (compreso; se l'inizio è di martedì, la scheda dura un giorno). Per ogni giorno si può cambiare la quantità di un orario (*variazioni*), senza toccare gli altri giorni.
 
 Il PDF ha una pagina per scheda (di più solo se gli orari sono molti): per ogni giorno e orario la quantità (`--` se nulla), lo spazio per la firma dell'operatore e dell'utente e il saldo rimasto. Un saldo negativo, cioè una quantità iniziale che non basta, è stampato in grassetto.
 
@@ -138,11 +138,13 @@ venv/bin/python src/genera_sostitutivi.py NOMI [-o file.pdf] [--json data/sostit
 
 ## Formato di `utenti.json`
 
-Un elenco di pazienti. Vedi `data/utenti.json.template` per un esempio completo.
+Un elenco di utenti. Vedi `data/utenti.json.template` per un esempio completo.
+
+> Fino alla versione precedente la chiave `utente` (in `utenti.json` e in `sostitutivi.json`) si chiamava `paziente`. I file nel vecchio formato si leggono ancora: l'editor li riscrive con il nuovo nome al primo salvataggio.
 
 ```json
 {
-  "paziente": "ROSSI MARIO",
+  "utente": "ROSSI MARIO",
   "serd_inviante": "Serd Esempio",
   "medico_serd": "Dott. Bianchi",
   "psichiatra_ct": null,
@@ -168,7 +170,7 @@ Un elenco di schede sostitutivi:
 
 ```json
 {
-  "paziente": "VERDI ANNA",
+  "utente": "VERDI ANNA",
   "farmaco": "Sostitutivo B sciroppo",
   "unita": "ml",
   "quantita_iniziale": 60,
@@ -184,8 +186,8 @@ Un elenco di schede sostitutivi:
 - `data_inizio` è in formato `aaaa-mm-gg`; la fine (il primo martedì) si calcola da sola.
 - Le quantità sono numeri (anche decimali, con il punto), espressi nell'`unita` indicata (default `mg`).
 - `variazioni` associa a un giorno le quantità diverse da quella standard, per orario. Le variazioni fuori dal periodo o uguali alla quantità standard vengono tolte al salvataggio.
-- `paziente` deve coincidere con il nome di un paziente di `utenti.json` (l'editor lo controlla al salvataggio).
-- Lo stesso paziente può avere più schede (farmaci o settimane diverse).
+- `utente` deve coincidere con il nome di un utente di `utenti.json` (l'editor lo controlla al salvataggio).
+- Lo stesso utente può avere più schede (farmaci o settimane diverse).
 
 ## Struttura del progetto
 

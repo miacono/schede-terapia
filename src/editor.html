@@ -116,10 +116,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <main id="vista-terapia">
   <aside class="panel">
-    <h2>Pazienti</h2>
+    <h2>Utenti</h2>
     <input type="search" id="cerca" placeholder="Cerca…">
     <div id="lista"></div>
-    <button id="nuovo" style="width:100%">+ Nuovo paziente</button>
+    <button id="nuovo" style="width:100%">+ Nuovo utente</button>
   </aside>
 
   <section>
@@ -131,7 +131,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <div><label for="d1">Data inizio</label><input type="date" id="d1"></div>
         <div><label for="d2">Data fine (facoltativa)</label><input type="date" id="d2"></div>
       </div>
-      <label>Pazienti da stampare</label>
+      <label>Utenti da stampare</label>
       <div style="margin-bottom:6px">
         <button id="selTutti" class="icona">Tutti</button>
         <button id="selNessuno" class="icona">Nessuno</button>
@@ -147,7 +147,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <main id="vista-sostitutivi" hidden>
   <aside class="panel">
     <h2>Schede sostitutivi</h2>
-    <input type="search" id="cercaS" placeholder="Cerca paziente o farmaco…">
+    <input type="search" id="cercaS" placeholder="Cerca utente o farmaco…">
     <div id="listaS" class="lista"></div>
     <button id="nuovaS" style="width:100%">+ Nuova scheda</button>
   </aside>
@@ -172,11 +172,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <script>
 "use strict";
-let dati = [];          // elenco pazienti in modifica
-let corrente = null;    // oggetto paziente aperto
+let dati = [];          // elenco utenti in modifica
+let corrente = null;    // oggetto utente aperto
 const sporco = { utenti: false, sostitutivi: false }; // file con modifiche non salvate
 const qualcosaDaSalvare = () => sporco.utenti || sporco.sostitutivi;
-const scelti = new Set(); // oggetti paziente selezionati per il PDF
+const scelti = new Set(); // oggetti utente selezionati per il PDF
 const FASCE = ["Mattino", "Pranzo", "Cena", "Notte"];
 
 const $ = (id) => document.getElementById(id);
@@ -218,7 +218,7 @@ async function carica() {
   try {
     dati = await (await api("/api/utenti")).json();
     sostitutivi = ordinaSostitutivi(await (await api("/api/sostitutivi")).json());
-    $("stato").textContent = `${dati.length} pazienti, ${sostitutivi.length} schede sostitutivi`;
+    $("stato").textContent = `${dati.length} utenti, ${sostitutivi.length} schede sostitutivi`;
     $("stato").className = "";
     corrente = dati[0] || null;
     correnteS = sostitutivi[0] || null;
@@ -233,12 +233,12 @@ async function salvaUtenti() {
   const esito = await (await api("/api/utenti", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dati) })).json();
   sporco.utenti = false;
   // ricarica per avere i dati normalizzati dal server, mantenendo la selezione per nome
-  const nome = corrente && corrente.paziente;
-  const nomiScelti = new Set([...scelti].map((u) => u.paziente));
+  const nome = corrente && corrente.utente;
+  const nomiScelti = new Set([...scelti].map((u) => u.utente));
   dati = await (await api("/api/utenti")).json();
-  corrente = dati.find((u) => u.paziente === nome) || dati[0] || null;
+  corrente = dati.find((u) => u.utente === nome) || dati[0] || null;
   scelti.clear();
-  dati.filter((u) => nomiScelti.has(u.paziente)).forEach((u) => scelti.add(u));
+  dati.filter((u) => nomiScelti.has(u.utente)).forEach((u) => scelti.add(u));
   disegnaTutto();
   return esito.backup;
 }
@@ -269,49 +269,49 @@ $("esci").addEventListener("click", async () => {
   window.close(); // funziona solo se la scheda è stata aperta dal programma
 });
 
-// ---------- lista pazienti
+// ---------- lista utenti
 function disegnaLista() {
   const q = $("cerca").value.trim().toLowerCase();
   const box = $("lista");
   box.replaceChildren();
-  dati.filter((u) => u.paziente.toLowerCase().includes(q)).forEach((u) => {
+  dati.filter((u) => u.utente.toLowerCase().includes(q)).forEach((u) => {
     box.append(h("div", { class: "paz" + (u === corrente ? " sel" : ""), onclick: () => { corrente = u; disegnaTutto(); } },
-      h("span", { class: "nome" }, u.paziente || "(senza nome)")));
+      h("span", { class: "nome" }, u.utente || "(senza nome)")));
   });
 }
 $("cerca").addEventListener("input", disegnaLista);
 
 $("nuovo").addEventListener("click", () => {
-  const nome = prompt("Cognome e nome del nuovo paziente:");
+  const nome = prompt("Cognome e nome del nuovo utente:");
   if (!nome || !nome.trim()) return;
-  if (dati.some((u) => u.paziente.toLowerCase() === nome.trim().toLowerCase())) { alert("Esiste già un paziente con questo nome."); return; }
-  const u = { paziente: nome.trim().toUpperCase(), serd_inviante: "", medico_serd: "", psichiatra_ct: "",
+  if (dati.some((u) => u.utente.toLowerCase() === nome.trim().toLowerCase())) { alert("Esiste già un utente con questo nome."); return; }
+  const u = { utente: nome.trim().toUpperCase(), serd_inviante: "", medico_serd: "", psichiatra_ct: "",
               somministrazioni: [], note: [], al_bisogno: [] };
   dati.push(u);
-  dati.sort((a, b) => a.paziente.localeCompare(b.paziente, "it"));
+  dati.sort((a, b) => a.utente.localeCompare(b.utente, "it"));
   corrente = u;
   segnaSporco();
   disegnaTutto();
 });
 
-// ---------- scheda paziente
+// ---------- scheda utente
 function campoTesto(etichetta, obj, chiave) {
   return h("div", {}, h("label", {}, etichetta),
     h("input", { type: "text", value: obj[chiave] || "", oninput: (e) => { obj[chiave] = e.target.value; segnaSporco(); } }));
 }
 
-// nome del paziente: le schede sostitutivi lo usano come riferimento, quindi lo seguono quando cambia
-function campoPaziente(u) {
-  let prima = u.paziente;
-  return h("div", {}, h("label", {}, "Paziente"),
-    h("input", { type: "text", value: u.paziente,
-      onfocus: () => { prima = u.paziente; },
-      oninput: (e) => { u.paziente = e.target.value; segnaSporco(); },
+// nome dell'utente: le schede sostitutivi lo usano come riferimento, quindi lo seguono quando cambia
+function campoUtente(u) {
+  let prima = u.utente;
+  return h("div", {}, h("label", {}, "Utente"),
+    h("input", { type: "text", value: u.utente,
+      onfocus: () => { prima = u.utente; },
+      oninput: (e) => { u.utente = e.target.value; segnaSporco(); },
       onchange: () => {
-        const sue = sostitutivi.filter((s) => s.paziente === prima);
-        sue.forEach((s) => { s.paziente = u.paziente; });
+        const sue = sostitutivi.filter((s) => s.utente === prima);
+        sue.forEach((s) => { s.utente = u.utente; });
         if (sue.length) { segnaSporco("sostitutivi"); disegnaTuttoS(); }
-        prima = u.paziente;
+        prima = u.utente;
         disegnaLista(); disegnaSelezione();
       } }));
 }
@@ -371,18 +371,18 @@ function disegnaScheda() {
   const box = $("scheda");
   box.replaceChildren();
   const u = corrente;
-  if (!u) { box.append(h("div", { class: "vuoto-pagina" }, "Nessun paziente. Aggiungine uno dal pulsante a sinistra.")); return; }
+  if (!u) { box.append(h("div", { class: "vuoto-pagina" }, "Nessun utente. Aggiungine uno dal pulsante a sinistra.")); return; }
 
   box.append(
     h("datalist", { id: "fasce" }, FASCE.map((f) => h("option", { value: f }))),
     h("div", { style: "display:flex;gap:10px;align-items:flex-end" },
-      h("div", { style: "flex:1" }, campoPaziente(u)),
+      h("div", { style: "flex:1" }, campoUtente(u)),
       h("button", { class: "pericolo", onclick: () => {
-        const sue = sostitutivi.filter((s) => s.paziente === u.paziente).length;
-        if (sue) { alert(`${u.paziente} ha ${sue === 1 ? "una scheda sostitutivi: eliminala" : `${sue} schede sostitutivi: eliminale`} prima dalla scheda Sostitutivi.`); return; }
-        if (!confirm(`Eliminare il paziente ${u.paziente}?`)) return;
+        const sue = sostitutivi.filter((s) => s.utente === u.utente).length;
+        if (sue) { alert(`${u.utente} ha ${sue === 1 ? "una scheda sostitutivi: eliminala" : `${sue} schede sostitutivi: eliminale`} prima dalla scheda Sostitutivi.`); return; }
+        if (!confirm(`Eliminare l'utente ${u.utente}?`)) return;
         dati.splice(dati.indexOf(u), 1); scelti.delete(u); corrente = dati[0] || null; segnaSporco(); disegnaTutto();
-      } }, "Elimina paziente")),
+      } }, "Elimina utente")),
     h("h3", {}, "Servizi di riferimento"),
     h("div", { class: "griglia" },
       campoTesto("SERD inviante", u, "serd_inviante"),
@@ -408,7 +408,7 @@ function disegnaSelezione() {
   box.replaceChildren();
   dati.forEach((u) => box.append(h("label", {},
     h("input", { type: "checkbox", checked: scelti.has(u) ? "" : null, onchange: (e) => { e.target.checked ? scelti.add(u) : scelti.delete(u); } }),
-    u.paziente)));
+    u.utente)));
 }
 $("selTutti").onclick = () => { dati.forEach((u) => scelti.add(u)); disegnaSelezione(); };
 $("selNessuno").onclick = () => { scelti.clear(); disegnaSelezione(); };
@@ -419,7 +419,7 @@ $("genera").addEventListener("click", async () => {
   const d1 = $("d1").value;
   if (!d1) return messaggio("Inserisci la data di inizio.", "err");
   const utenti = dati.filter((u) => scelti.has(u));
-  if (!utenti.length) return messaggio("Seleziona almeno un paziente.", "err");
+  if (!utenti.length) return messaggio("Seleziona almeno un utente.", "err");
   $("genera").disabled = true;
   messaggio("Generazione in corso…");
   try {
@@ -430,7 +430,7 @@ $("genera").addEventListener("click", async () => {
     const a = h("a", { href: URL.createObjectURL(blob), download: nome });
     document.body.append(a); a.click(); a.remove();
     const giorni = $("d2").value ? Math.round((new Date($("d2").value) - new Date(d1)) / 864e5) + 1 : 1;
-    messaggio(`Creato ${nome}: ${utenti.length} pazienti × ${giorni} giorni = ${utenti.length * giorni * 2} pagine.` +
+    messaggio(`Creato ${nome}: ${utenti.length} utenti × ${giorni} giorni = ${utenti.length * giorni * 2} pagine.` +
       (sporco.utenti ? " (Include le modifiche non ancora salvate.)" : ""), "ok");
   } catch (e) {
     messaggio("Errore: " + e.message, "err");
@@ -456,7 +456,7 @@ const daIso = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); retu
 const breve = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 const lunga = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 const qtaStr = (q) => String(q).replace(".", ",");
-const chiaveS = (s) => `${s.paziente}|${s.farmaco}|${s.data_inizio}`;
+const chiaveS = (s) => `${s.utente}|${s.farmaco}|${s.data_inizio}`;
 const oggi = () => isoData(new Date());
 
 // "8.30", "8:30", "0830" -> "08:30"; null se non è un orario valido
@@ -499,12 +499,12 @@ function pianoS(s) {
 }
 
 function ordinaSostitutivi(arr) {
-  return arr.sort((a, b) => (b.data_inizio || "").localeCompare(a.data_inizio || "") || a.paziente.localeCompare(b.paziente, "it"));
+  return arr.sort((a, b) => (b.data_inizio || "").localeCompare(a.data_inizio || "") || a.utente.localeCompare(b.utente, "it"));
 }
 
 function nuovaScheda(da = {}) {
   return {
-    paziente: da.paziente || "", farmaco: da.farmaco || "", unita: da.unita || "mg",
+    utente: da.utente || "", farmaco: da.farmaco || "", unita: da.unita || "mg",
     quantita_iniziale: da.quantita_iniziale ?? null, data_inizio: da.data_inizio || oggi(),
     orari: (da.orari || ORARI_PREDEFINITI.map((orario) => ({ orario, quantita: 0 }))).map((o) => ({ ...o })),
     variazioni: {},
@@ -529,14 +529,14 @@ const modificaS = () => segnaSporco("sostitutivi");
 // ---------- lista
 function etichettaS(s) {
   const p = periodoS(s);
-  return [s.paziente || "(paziente da indicare)", (s.farmaco || "farmaco?") + (p.length ? ` · ${breve(p[0])}–${breve(p[p.length - 1])}` : "")];
+  return [s.utente || "(utente da indicare)", (s.farmaco || "farmaco?") + (p.length ? ` · ${breve(p[0])}–${breve(p[p.length - 1])}` : "")];
 }
 
 function disegnaListaS() {
   const q = $("cercaS").value.trim().toLowerCase();
   const box = $("listaS");
   box.replaceChildren();
-  sostitutivi.filter((s) => `${s.paziente} ${s.farmaco}`.toLowerCase().includes(q)).forEach((s) => {
+  sostitutivi.filter((s) => `${s.utente} ${s.farmaco}`.toLowerCase().includes(q)).forEach((s) => {
     const [titolo, sotto] = etichettaS(s);
     box.append(h("div", { class: "paz" + (s === correnteS ? " sel" : ""), onclick: () => { correnteS = s; disegnaTuttoS(); } },
       h("span", { class: "nome" }, titolo, h("span", { class: "sotto" }, sotto))));
@@ -571,8 +571,8 @@ function disegnaSchedaS() {
   const s = correnteS;
   if (!s) { box.append(h("div", { class: "vuoto-pagina" }, "Nessuna scheda sostitutivi. Creane una dal pulsante a sinistra.")); return; }
 
-  const nomiPazienti = dati.map((u) => u.paziente).filter((n) => n.trim()).sort((a, b) => a.localeCompare(b, "it"));
-  const sconosciuto = s.paziente && !nomiPazienti.includes(s.paziente);
+  const nomiUtenti = dati.map((u) => u.utente).filter((n) => n.trim()).sort((a, b) => a.localeCompare(b, "it"));
+  const sconosciuto = s.utente && !nomiUtenti.includes(s.utente);
   const farmaci = [...new Set(sostitutivi.map((x) => x.farmaco).filter(Boolean))];
   const periodoBox = h("div", { class: "info" });
   const pianoBox = h("div");
@@ -582,11 +582,11 @@ function disegnaSchedaS() {
     h("datalist", { id: "farmaciS" }, farmaci.map((n) => h("option", { value: n }))),
     h("datalist", { id: "unitaS" }, ["mg", "ml", "cp"].map((n) => h("option", { value: n }))),
     h("div", { style: "display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap" },
-      h("div", { style: "flex:1;min-width:200px" }, h("label", {}, "Paziente (dalle schede farmaci)"),
-        h("select", { class: sconosciuto ? "errato" : null, onchange: (e) => { s.paziente = e.target.value; modificaS(); disegnaSchedaS(); disegnaListaS(); disegnaSelezioneS(); } },
-          h("option", { value: "", disabled: "", selected: s.paziente ? null : "" }, "— scegli il paziente —"),
-          sconosciuto ? h("option", { value: s.paziente, selected: "" }, `${s.paziente} (non c'è nelle schede farmaci)`) : "",
-          nomiPazienti.map((n) => h("option", { value: n, selected: n === s.paziente ? "" : null }, n)))),
+      h("div", { style: "flex:1;min-width:200px" }, h("label", {}, "Utente (dalle schede farmaci)"),
+        h("select", { class: sconosciuto ? "errato" : null, onchange: (e) => { s.utente = e.target.value; modificaS(); disegnaSchedaS(); disegnaListaS(); disegnaSelezioneS(); } },
+          h("option", { value: "", disabled: "", selected: s.utente ? null : "" }, "— scegli l'utente —"),
+          sconosciuto ? h("option", { value: s.utente, selected: "" }, `${s.utente} (non c'è nelle schede farmaci)`) : "",
+          nomiUtenti.map((n) => h("option", { value: n, selected: n === s.utente ? "" : null }, n)))),
       h("button", { title: "Nuova scheda per la settimana successiva, con gli stessi orari e quantità", onclick: () => {
         const p = periodoS(s);
         if (!p.length) return;
@@ -595,7 +595,7 @@ function disegnaSchedaS() {
         sostitutivi.unshift(n); correnteS = n; modificaS(); disegnaTuttoS();
       } }, "Settimana successiva"),
       h("button", { class: "pericolo", onclick: () => {
-        if (!confirm(`Eliminare la scheda sostitutivi di ${s.paziente || "questo paziente"}?`)) return;
+        if (!confirm(`Eliminare la scheda sostitutivi di ${s.utente || "questo utente"}?`)) return;
         sostitutivi.splice(sostitutivi.indexOf(s), 1); sceltiS.delete(s); correnteS = sostitutivi[0] || null; modificaS(); disegnaTuttoS();
       } }, "Elimina scheda")),
     h("div", { class: "griglia", style: "margin-top:10px" },
@@ -605,8 +605,8 @@ function disegnaSchedaS() {
       h("div", {}, h("label", {}, "Data di inizio"),
         h("input", { type: "date", value: s.data_inizio, oninput: (e) => { s.data_inizio = e.target.value; modificaS(); aggiorna(); } }))),
     periodoBox,
-    sconosciuto ? h("div", { class: "info err" }, "Questo paziente non c'è nelle schede farmaci: sceglilo dall'elenco o aggiungilo dalla scheda Farmaci.") : "",
-    nomiPazienti.length ? "" : h("div", { class: "info warn" }, "Non ci sono pazienti: aggiungili dalla scheda Farmaci."),
+    sconosciuto ? h("div", { class: "info err" }, "Questo utente non c'è nelle schede farmaci: sceglilo dall'elenco o aggiungilo dalla scheda Farmaci.") : "",
+    nomiUtenti.length ? "" : h("div", { class: "info warn" }, "Non ci sono utenti: aggiungili dalla scheda Farmaci."),
     h("h3", {}, "Orari e quantità standard"),
     h("p", { class: "vuoto", style: "margin-top:0" }, "La quantità di ogni orario vale per tutti i giorni, salvo le modifiche giorno per giorno qui sotto. Gli orari con quantità 0 vengono stampati con «--»."),
     elencoOrari(s, aggiorna),
@@ -741,7 +741,7 @@ function mostraVista(nome) {
     $("tab-" + v).classList.toggle("attiva", v === nome);
   }
   if (location.hash !== "#" + nome) history.replaceState(null, "", "#" + nome);
-  if (nome === "sostitutivi") disegnaSchedaS(); // aggiorna i suggerimenti dei nomi dei pazienti
+  if (nome === "sostitutivi") disegnaSchedaS(); // aggiorna i suggerimenti dei nomi degli utenti
 }
 document.querySelectorAll("nav.schede button").forEach((b) => b.addEventListener("click", () => mostraVista(b.dataset.vista)));
 mostraVista(location.hash === "#sostitutivi" ? "sostitutivi" : "terapia");

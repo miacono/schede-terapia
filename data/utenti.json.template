@@ -1,6 +1,6 @@
 [
   {
-    "paziente": "ROSSI MARIO",
+    "utente": "ROSSI MARIO",
     "serd_inviante": "Serd Esempio",
     "medico_serd": "Dott. Bianchi",
     "psichiatra_ct": null,
@@ -36,7 +36,7 @@
     ]
   },
   {
-    "paziente": "VERDI ANNA",
+    "utente": "VERDI ANNA",
     "serd_inviante": "Serd Immaginario",
     "medico_serd": "Dott.ssa Neri",
     "psichiatra_ct": "Dott. Gialli",

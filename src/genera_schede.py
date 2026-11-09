@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Genera il PDF delle schede terapia (fronte/retro per paziente, un foglio per giorno).
+"""Genera il PDF delle schede terapia (fronte/retro per utente, un foglio per giorno).
 
 Uso:
     src/genera_schede.py NOMI DATA_INIZIO [DATA_FINE] [-o FILE.pdf] [--json utenti.json]
@@ -68,18 +68,28 @@ def norm(s):
     return "".join(c for c in s if unicodedata.category(c) != "Mn").casefold().strip()
 
 
+def aggiorna_formato(voci):
+    """Converte i dati nel formato attuale: fino alla versione precedente la chiave
+    "utente" si chiamava "paziente". Il file viene riscritto col nuovo nome al salvataggio."""
+    if isinstance(voci, list):
+        for i, v in enumerate(voci):
+            if isinstance(v, dict) and "paziente" in v and "utente" not in v:
+                voci[i] = {("utente" if k == "paziente" else k): x for k, x in v.items()}
+    return voci
+
+
 def seleziona(utenti, nomi):
     if norm(nomi) == "tutti":
         return utenti
     scelti = []
     for token in (t for t in nomi.split(",") if t.strip()):
         t = norm(token)
-        trovati = [u for u in utenti if t in norm(u["paziente"])]
+        trovati = [u for u in utenti if t in norm(u["utente"])]
         if not trovati:
-            sys.exit(f"Errore: nessun paziente corrisponde a '{token.strip()}'.")
+            sys.exit(f"Errore: nessun utente corrisponde a '{token.strip()}'.")
         if len(trovati) > 1:
-            elenco = ", ".join(u["paziente"] for u in trovati)
-            print(f"Attenzione: '{token.strip()}' corrisponde a più pazienti: {elenco}", file=sys.stderr)
+            elenco = ", ".join(u["utente"] for u in trovati)
+            print(f"Attenzione: '{token.strip()}' corrisponde a più utenti: {elenco}", file=sys.stderr)
         scelti += [u for u in trovati if u not in scelti]
     return scelti
 
@@ -112,12 +122,12 @@ def testo(c, x, y, s, size=9, font="Helvetica", align="left"):
     {"left": c.drawString, "center": c.drawCentredString, "right": c.drawRightString}[align](x, y, s)
 
 
-def intestazione(c, paziente, data):
-    """Logo, titolo, paziente e data. Ritorna la y sotto l'intestazione."""
+def intestazione(c, utente, data):
+    """Logo, titolo, utente e data. Ritorna la y sotto l'intestazione."""
     top = H - 55
     testo(c, 320, top, TITOLO, 13, "Helvetica-Bold", "center")
     c.drawImage(str(LOGO), 62, top - 62, width=82, height=82 * 204 / 354, mask="auto")
-    for i, (lab, val) in enumerate((("PAZIENTE:", paziente), ("DATA:", data))):
+    for i, (lab, val) in enumerate((("UTENTE:", utente), ("DATA:", data))):
         y = top - 28 - i * 19
         testo(c, 200, y, lab, 10)
         c.setLineWidth(THIN)
@@ -185,7 +195,7 @@ def tabella(c, x0, x1, ytop, righe, h, colonne, celle=None, spessa=True):
 
 
 def pagina_fronte(c, u, data):
-    y = intestazione(c, u["paziente"], data)
+    y = intestazione(c, u["utente"], data)
     y -= 20
     cols = COLONNE
     xs = (X0,) + cols + (X1,)
@@ -229,7 +239,7 @@ def pagina_fronte(c, u, data):
 
 
 def pagina_retro(c, u, data):
-    y = intestazione(c, u["paziente"], data)
+    y = intestazione(c, u["utente"], data)
     testo(c, X0 - 8, y - 10, "AL BISOGNO:", 7, "Helvetica-Oblique")
     n = max(len(u["al_bisogno"]), 7)
     y = tabella(c, X0 - 8, X1, y - 14, n, 18.5, (), [[b] for b in u["al_bisogno"]])
@@ -279,7 +289,7 @@ def main():
                  "Avvia una volta l'editor per spostarlo nella cartella data/.")
     try:
         # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
-        utenti = json.loads(Path(a.json).read_text(encoding="utf-8-sig"))
+        utenti = aggiorna_formato(json.loads(Path(a.json).read_text(encoding="utf-8-sig")))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
         sys.exit(f"Errore: impossibile leggere '{a.json}' (deve essere JSON in UTF-8): {e}")
     scelti = seleziona(utenti, a.nomi)
@@ -291,7 +301,7 @@ def main():
     except OSError as e:
         # tipico su Windows: il PDF è ancora aperto nel lettore, che lo blocca
         sys.exit(f"Errore: impossibile scrivere '{out}' (il file è forse aperto in un altro programma?): {e}")
-    print(f"{out}: {len(scelti)} pazienti x {len(giorni)} giorni = {len(scelti) * len(giorni) * 2} pagine")
+    print(f"{out}: {len(scelti)} utenti x {len(giorni)} giorni = {len(scelti) * len(giorni) * 2} pagine")
 
 
 if __name__ == "__main__":

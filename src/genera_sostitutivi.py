@@ -40,7 +40,7 @@ from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-from genera_schede import RADICE, THICK, THIN, X0, X1, intestazione, seleziona, testo
+from genera_schede import RADICE, THICK, THIN, X0, X1, aggiorna_formato, intestazione, seleziona, testo
 
 JSON_PREDEFINITO = RADICE / "data" / "sostitutivi.json"
 ORARI_PREDEFINITI = ("08:30", "13:00", "18:00", "23:00")
@@ -107,9 +107,9 @@ def valida(schede):
     for s in schede:
         if not isinstance(s, dict):
             return "scheda sostitutivi non valida"
-        nome = str(s.get("paziente") or "").strip()
+        nome = str(s.get("utente") or "").strip()
         if not nome:
-            return "c'è una scheda sostitutivi senza paziente"
+            return "c'è una scheda sostitutivi senza utente"
         farmaco = str(s.get("farmaco") or "").strip()
         if not farmaco:
             return f"{nome}: manca il nome del farmaco sostitutivo"
@@ -161,7 +161,7 @@ def completa(s):
     """Normalizza una scheda già validata: toglie spazi e le variazioni che non servono più
     (fuori dal periodo, per orari tolti o uguali alla quantità standard)."""
     s = dict(s)
-    s["paziente"] = s["paziente"].strip()
+    s["utente"] = s["utente"].strip()
     s["farmaco"] = s["farmaco"].strip()
     s["unita"] = (s.get("unita") or "").strip() or "mg"
     s["orari"] = sorted(({"orario": hhmm(o["orario"]), "quantita": o["quantita"]} for o in s["orari"]),
@@ -190,7 +190,7 @@ def giorno_str(g):
 def testata(c, s, pagina, pagine):
     giorni = periodo(s)
     data = f"{giorni[0]:%d/%m/%Y}" + (f" - {giorni[-1]:%d/%m/%Y}" if len(giorni) > 1 else "")
-    y = intestazione(c, s["paziente"], data)
+    y = intestazione(c, s["utente"], data)
     titolo = "SCHEDA SOSTITUTIVO" + (f" ({pagina}/{pagine})" if pagine > 1 else "")
     testo(c, (X_INIZIO + X1) / 2, y - 14, titolo, 11, "Helvetica-Bold", "center")
     y -= 38
@@ -266,7 +266,7 @@ def main():
 
     try:
         # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
-        schede = json.loads(Path(a.json).read_text(encoding="utf-8-sig"))
+        schede = aggiorna_formato(json.loads(Path(a.json).read_text(encoding="utf-8-sig")))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
         sys.exit(f"Errore: impossibile leggere '{a.json}' (deve essere JSON in UTF-8): {e}")
     errore = valida(schede)
@@ -278,7 +278,7 @@ def main():
     for s in scelte:
         saldo = piano(s)[-1][1][-1][2]
         if saldo < 0:
-            print(f"Attenzione: {s['paziente']}, {s['farmaco']}: la quantità iniziale non basta "
+            print(f"Attenzione: {s['utente']}, {s['farmaco']}: la quantità iniziale non basta "
                   f"(saldo finale {qta_str(saldo)} {s['unita']})", file=sys.stderr)
 
     inizio = min(date.fromisoformat(s["data_inizio"]) for s in scelte)

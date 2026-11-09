@@ -48,7 +48,7 @@ BASE = Path(__file__).resolve().parent  # cartella src/
 RADICE = BASE.parent  # cartella del programma
 DATI = RADICE / "data"
 JSON_PREDEFINITO = DATI / "utenti.json"
-SOSTITUTIVI = "sostitutivi.json"  # schede sostitutivi, accanto al file dei pazienti
+SOSTITUTIVI = "sostitutivi.json"  # schede sostitutivi, accanto al file degli utenti
 TEMPLATE = DATI / "utenti.json.template"
 HTML = BASE / "editor.html"
 MAX_BODY = 5 * 1024 * 1024
@@ -62,16 +62,16 @@ FORMATO_BACKUP = "%Y-%m-%dT%H-%M-%S"
 def valida(utenti):
     """Controlla la struttura minima attesa dallo script dei PDF. Ritorna un messaggio d'errore o None."""
     if not isinstance(utenti, list):
-        return "i dati devono essere un elenco di pazienti"
+        return "i dati devono essere un elenco di utenti"
     visti = set()
     for u in utenti:
         if not isinstance(u, dict):
-            return "paziente non valido"
-        nome = (u.get("paziente") or "").strip()
+            return "utente non valido"
+        nome = (u.get("utente") or "").strip()
         if not nome:
-            return "c'è un paziente senza nome"
+            return "c'è un utente senza nome"
         if nome.casefold() in visti:
-            return f"paziente duplicato: {nome}"
+            return f"utente duplicato: {nome}"
         visti.add(nome.casefold())
         for campo in ("note", "al_bisogno"):
             if not isinstance(u.get(campo, []), list):
@@ -96,7 +96,7 @@ def valida(utenti):
 def completa(u):
     """Riempie i campi mancanti, così lo script dei PDF trova sempre tutte le chiavi."""
     u = dict(u)
-    u["paziente"] = u["paziente"].strip()
+    u["utente"] = u["utente"].strip()
     for k in ("serd_inviante", "medico_serd", "psichiatra_ct"):
         u[k] = (u.get(k) or "").strip() or None
     u["note"] = [n for n in u.get("note", []) if str(n).strip()]
@@ -112,12 +112,12 @@ def completa(u):
     return u
 
 
-def pazienti_mancanti(schede, utenti):
-    """Errore se una scheda sostitutivi indica un paziente che non c'è nelle schede terapia, altrimenti None."""
-    nomi = {str(u.get("paziente") or "").strip().casefold() for u in utenti if isinstance(u, dict)}
+def utenti_mancanti(schede, utenti):
+    """Errore se una scheda sostitutivi indica un utente che non c'è nelle schede terapia, altrimenti None."""
+    nomi = {str(u.get("utente") or "").strip().casefold() for u in utenti if isinstance(u, dict)}
     for s in schede:
-        if s["paziente"].strip().casefold() not in nomi:
-            return f"{s['paziente'].strip()}: il paziente non c'è nelle schede farmaci (aggiungilo lì o sceglilo dall'elenco)"
+        if s["utente"].strip().casefold() not in nomi:
+            return f"{s['utente'].strip()}: l'utente non c'è nelle schede farmaci (aggiungilo lì o sceglilo dall'elenco)"
     return None
 
 
@@ -157,7 +157,7 @@ def leggi_json(json_path):
     """Contenuto del file dati, oppure un elenco vuoto se il file non esiste ancora."""
     try:
         # utf-8-sig: accetta anche il BOM che il Blocco note di Windows può aggiungere
-        return json.loads(json_path.read_text(encoding="utf-8-sig"))
+        return genera_schede.aggiorna_formato(json.loads(json_path.read_text(encoding="utf-8-sig")))
     except FileNotFoundError:
         return []
 
@@ -333,7 +333,7 @@ class Handler(BaseHTTPRequestHandler):
             voci = self._body()
             errore = controlla(voci)
             if not errore and percorso == self.sost_path:
-                errore = pazienti_mancanti(voci, leggi_json(self.json_path))
+                errore = utenti_mancanti(voci, leggi_json(self.json_path))
             if errore:
                 return self._err(400, errore)
             voci = [normalizza(v) for v in voci]
@@ -364,7 +364,7 @@ class Handler(BaseHTTPRequestHandler):
             if errore:
                 return self._err(400, errore)
             if not utenti:
-                return self._err(400, "nessun paziente selezionato")
+                return self._err(400, "nessun utente selezionato")
             utenti = [completa(u) for u in utenti]
             inizio = datetime.strptime(req["data_inizio"], "%Y-%m-%d").date()
             fine = datetime.strptime(req.get("data_fine") or req["data_inizio"], "%Y-%m-%d").date()

@@ -1,6 +1,6 @@
 [
   {
-    "paziente": "ROSSI MARIO",
+    "utente": "ROSSI MARIO",
     "farmaco": "Sostitutivo A",
     "unita": "mg",
     "quantita_iniziale": 280,
@@ -14,7 +14,7 @@
     "variazioni": {}
   },
   {
-    "paziente": "VERDI ANNA",
+    "utente": "VERDI ANNA",
     "farmaco": "Sostitutivo B sciroppo",
     "unita": "ml",
     "quantita_iniziale": 60,
