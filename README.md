@@ -58,27 +58,30 @@ venv/bin/python src/editor.py
 
 Si apre il browser su `http://127.0.0.1:8000`. Opzioni: `--port 8080`, `--no-browser`, `--json altro_file.json`.
 
-L'editor ha due schede: **Farmaci** (le schede terapia, da `utenti.json`) e **Sostitutivi** (da `sostitutivi.json`, nella stessa cartella di `utenti.json`; se non esiste ancora si parte da un elenco vuoto).
+L'editor ha tre schede: **Utenti** e **Farmaci** (da `utenti.json`) e **Sostitutivi** (da `sostitutivi.json`, nella stessa cartella di `utenti.json`; se non esiste ancora si parte da un elenco vuoto). In alto ci sono anche i pulsanti per **salvare** le modifiche e per **uscire** (*Esci* spegne il server).
+
+Dalla scheda *Utenti* si può:
+
+- cercare, aggiungere ed eliminare utenti (eliminando un utente si elimina anche la sua scheda farmaci);
+- modificare cognome e nome, SERD inviante, medico SERD e psichiatra;
+- passare alla scheda farmaci o alle schede sostitutivi dell'utente.
 
 Dalla scheda *Farmaci* si può:
 
-- cercare, aggiungere ed eliminare utenti;
-- modificare SERD, medico e psichiatra;
+- scegliere l'utente da un menu a tendina;
 - aggiungere, togliere e riordinare fasce, farmaci, note e righe "al bisogno";
-- **salvare** le modifiche in `data/utenti.json`;
-- **uscire** con il pulsante *Esci*, che spegne il server;
 - **generare il PDF** scegliendo utenti e date (include anche le modifiche non ancora salvate).
 
 Dalla scheda *Sostitutivi* si può:
 
-- creare, cercare ed eliminare schede sostitutivi; l'utente si sceglie tra quelli della scheda *Farmaci*, dove si aggiungono gli utenti nuovi;
+- creare, cercare ed eliminare schede sostitutivi, scegliendo l'utente da un menu a tendina;
 - indicare farmaco, quantità iniziale, unità di misura e data di inizio: la fine (il martedì) si calcola da sola;
 - modificare gli orari (predefiniti 08.30, 13.00, 18.00, 23.00; si possono scrivere anche col punto) e la quantità standard di ciascuno;
 - cambiare la quantità di un singolo giorno nella tabella *giorno per giorno*, che mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
 - creare con un clic la scheda della **settimana successiva**, con gli stessi orari e quantità;
 - **generare il PDF** delle schede scelte.
 
-Rinominando un utente nella scheda *Farmaci* si aggiornano anche le sue schede sostitutivi; non lo si può eliminare finché ne ha. Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup, e rifiuta schede sostitutivi di utenti che non ci sono nelle schede farmaci.
+Gli utenti si aggiungono solo dalla scheda *Utenti*. Rinominando un utente si aggiornano anche le sue schede sostitutivi; non lo si può eliminare finché ne ha. Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup, e rifiuta schede sostitutivi di utenti che non ci sono nell'elenco utenti.
 
 Ad ogni salvataggio il file corrente (`utenti.json` o `sostitutivi.json`) viene copiato nella cartella `backup/` accanto al file dei dati (quindi `data/backup/`) come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` o `sostitutivi_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `data/backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
 

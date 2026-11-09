@@ -113,11 +113,11 @@ def completa(u):
 
 
 def utenti_mancanti(schede, utenti):
-    """Errore se una scheda sostitutivi indica un utente che non c'è nelle schede terapia, altrimenti None."""
+    """Errore se una scheda sostitutivi indica un utente che non c'è in utenti.json, altrimenti None."""
     nomi = {str(u.get("utente") or "").strip().casefold() for u in utenti if isinstance(u, dict)}
     for s in schede:
         if s["utente"].strip().casefold() not in nomi:
-            return f"{s['utente'].strip()}: l'utente non c'è nelle schede farmaci (aggiungilo lì o sceglilo dall'elenco)"
+            return f"{s['utente'].strip()}: l'utente non c'è nell'elenco utenti (aggiungilo dalla scheda Utenti)"
     return None
 
 
