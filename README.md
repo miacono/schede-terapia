@@ -109,6 +109,20 @@ Il PDF è ordinato per giorno: per ogni giorno, per ogni paziente, fronte e retr
 
 Le fasce **Mattino, Pranzo, Cena e Notte** vengono sempre stampate, anche vuote, da compilare a mano. Le fasce aggiuntive (per esempio `16:00`) vengono inserite nel punto corretto in base all'orario.
 
+## Schede sostitutivi
+
+Oltre alle schede terapia, il programma gestisce le **schede sostitutivi**: il foglio firme di un farmaco sostitutivo consegnato in quantità fissa, con il saldo che scala a ogni somministrazione. I dati stanno in un file separato, `data/sostitutivi.json` (esempio: `data/sostitutivi.json.template`).
+
+Per ogni scheda si indicano paziente, farmaco, unità di misura, quantità iniziale, data di inizio e gli **orari** con la quantità di ciascuno (predefiniti 08:30, 13:00, 18:00 e 23:00, modificabili). La scheda **finisce sempre di martedì**: va dalla data di inizio al primo martedì (compreso; se l'inizio è di martedì, la scheda dura un giorno). Per ogni giorno si può cambiare la quantità di un orario (*variazioni*), senza toccare gli altri giorni.
+
+Il PDF ha una pagina per scheda (di più solo se gli orari sono molti): per ogni giorno e orario la quantità (`--` se nulla), lo spazio per la firma e il saldo rimasto. Un saldo negativo, cioè una quantità iniziale che non basta, è stampato in grassetto.
+
+```bash
+venv/bin/python src/genera_sostitutivi.py NOMI [-o file.pdf] [--json data/sostitutivi.json]
+```
+
+`NOMI` funziona come per le schede terapia (`TUTTI`, oppure parti di nomi separate da virgola). Il file predefinito è `schede_sostitutivi_AAAAMMGG.pdf`, con la data di inizio più vecchia tra le schede scelte.
+
 ## Formato di `utenti.json`
 
 Un elenco di pazienti. Vedi `data/utenti.json.template` per un esempio completo.
@@ -135,18 +149,45 @@ Un elenco di pazienti. Vedi `data/utenti.json.template` per un esempio completo.
 - `psichiatra_ct` e gli altri campi di testo possono essere `null` o vuoti.
 - `note` e `al_bisogno` sono elenchi di righe di testo, eventualmente vuoti.
 
+## Formato di `sostitutivi.json`
+
+Un elenco di schede sostitutivi:
+
+```json
+{
+  "paziente": "VERDI ANNA",
+  "farmaco": "Sostitutivo B sciroppo",
+  "unita": "ml",
+  "quantita_iniziale": 60,
+  "data_inizio": "2026-11-12",
+  "orari": [
+    { "orario": "08:30", "quantita": 5 },
+    { "orario": "18:00", "quantita": 2.5 }
+  ],
+  "variazioni": { "2026-11-14": { "08:30": 7.5 } }
+}
+```
+
+- `data_inizio` è in formato `aaaa-mm-gg`; la fine (il primo martedì) si calcola da sola.
+- Le quantità sono numeri (anche decimali, con il punto), espressi nell'`unita` indicata (default `mg`).
+- `variazioni` associa a un giorno le quantità diverse da quella standard, per orario. Le variazioni fuori dal periodo o uguali alla quantità standard vengono tolte al salvataggio.
+- Lo stesso paziente può avere più schede (farmaci o settimane diverse).
+
 ## Struttura del progetto
 
 ```
 avvia_editor.bat        avvio dell'editor su Windows
 src/                    il programma:
   genera_schede.py        generatore dei PDF (riga di comando)
+  genera_sostitutivi.py   generatore dei PDF delle schede sostitutivi
   editor.py               server locale: API per utenti.json e PDF
   editor.html             interfaccia web dell'editor
   assets/logo.jpeg        logo stampato sulle schede
 data/                   i dati (ignorati da git, tranne il template):
   utenti.json.template    esempio di dati (inventati)
   utenti.json             dati reali
+  sostitutivi.json.template  esempio di schede sostitutivi (inventate)
+  sostitutivi.json        schede sostitutivi reali
   backup/                 copie di sicurezza di utenti.json
 requirements.txt        dipendenze Python
 ```

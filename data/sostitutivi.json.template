@@ -1,0 +1,33 @@
+[
+  {
+    "paziente": "ROSSI MARIO",
+    "farmaco": "Sostitutivo A",
+    "unita": "mg",
+    "quantita_iniziale": 280,
+    "data_inizio": "2026-11-11",
+    "orari": [
+      { "orario": "08:30", "quantita": 40 },
+      { "orario": "13:00", "quantita": 0 },
+      { "orario": "18:00", "quantita": 0 },
+      { "orario": "23:00", "quantita": 0 }
+    ],
+    "variazioni": {}
+  },
+  {
+    "paziente": "VERDI ANNA",
+    "farmaco": "Sostitutivo B sciroppo",
+    "unita": "ml",
+    "quantita_iniziale": 60,
+    "data_inizio": "2026-11-12",
+    "orari": [
+      { "orario": "08:30", "quantita": 5 },
+      { "orario": "13:00", "quantita": 0 },
+      { "orario": "18:00", "quantita": 2.5 },
+      { "orario": "23:00", "quantita": 0 }
+    ],
+    "variazioni": {
+      "2026-11-14": { "08:30": 7.5 },
+      "2026-11-16": { "18:00": 0 }
+    }
+  }
+]
