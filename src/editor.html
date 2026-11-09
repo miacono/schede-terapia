@@ -235,7 +235,7 @@ async function api(url, opts) {
 
 async function carica() {
   try {
-    dati = await (await api("/api/utenti")).json();
+    dati = ordinaUtenti(await (await api("/api/utenti")).json());
     sostitutivi = ordinaSostitutivi(await (await api("/api/sostitutivi")).json());
     $("stato").textContent = `${dati.length} utenti, ${sostitutivi.length} schede sostitutivi`;
     $("stato").className = "";
@@ -254,7 +254,7 @@ async function salvaUtenti() {
   // ricarica per avere i dati normalizzati dal server, mantenendo la selezione per nome
   const nome = corrente && corrente.utente;
   const nomiScelti = new Set([...scelti].map((u) => u.utente));
-  dati = await (await api("/api/utenti")).json();
+  dati = ordinaUtenti(await (await api("/api/utenti")).json());
   corrente = dati.find((u) => u.utente === nome) || dati[0] || null;
   scelti.clear();
   dati.filter((u) => nomiScelti.has(u.utente)).forEach((u) => scelti.add(u));
@@ -288,6 +288,11 @@ $("esci").addEventListener("click", async () => {
   window.close(); // funziona solo se la scheda è stata aperta dal programma
 });
 
+// ordine alfabetico (senza distinguere maiuscole e accenti): elenchi, stampa e file salvato
+function ordinaUtenti(arr) {
+  return arr.sort((a, b) => (a.utente || "").localeCompare(b.utente || "", "it", { sensitivity: "base" }));
+}
+
 // ---------- lista utenti (scheda Utenti e scheda Farmaci, con la stessa selezione)
 const LISTE_UTENTI = [["lista", "cerca"], ["listaF", "cercaF"]];
 function disegnaLista() {
@@ -310,7 +315,7 @@ $("nuovo").addEventListener("click", () => {
   const u = { utente: nome.trim().toUpperCase(), serd_inviante: "", medico_serd: "", psichiatra_ct: "",
               somministrazioni: [], note: [], al_bisogno: [] };
   dati.push(u);
-  dati.sort((a, b) => a.utente.localeCompare(b.utente, "it"));
+  ordinaUtenti(dati);
   corrente = u;
   segnaSporco();
   disegnaTutto();
@@ -365,6 +370,7 @@ function campoUtente(u) {
         sue.forEach((s) => { s.utente = u.utente; });
         if (sue.length) { segnaSporco("sostitutivi"); disegnaTuttoS(); }
         prima = u.utente;
+        ordinaUtenti(dati);
         disegnaLista(); disegnaSelezione();
       } }));
 }
