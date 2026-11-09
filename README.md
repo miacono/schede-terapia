@@ -71,14 +71,14 @@ Dalla scheda *Farmaci* si può:
 
 Dalla scheda *Sostitutivi* si può:
 
-- creare, cercare ed eliminare schede sostitutivi (il nome del paziente si sceglie tra quelli delle schede terapia o si scrive a mano);
+- creare, cercare ed eliminare schede sostitutivi; il paziente si sceglie tra quelli della scheda *Farmaci*, dove si aggiungono i pazienti nuovi;
 - indicare farmaco, quantità iniziale, unità di misura e data di inizio: la fine (il martedì) si calcola da sola;
 - modificare gli orari (predefiniti 08.30, 13.00, 18.00, 23.00; si possono scrivere anche col punto) e la quantità standard di ciascuno;
 - cambiare la quantità di un singolo giorno nella tabella *giorno per giorno*, che mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
 - creare con un clic la scheda della **settimana successiva**, con gli stessi orari e quantità;
 - **generare il PDF** delle schede scelte.
 
-Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup.
+Rinominando un paziente nella scheda *Farmaci* si aggiornano anche le sue schede sostitutivi; non lo si può eliminare finché ne ha. Il pulsante *Salva modifiche* salva tutti e due i file, ciascuno con il suo backup, e rifiuta schede sostitutivi di pazienti che non ci sono nelle schede farmaci.
 
 Ad ogni salvataggio il file corrente (`utenti.json` o `sostitutivi.json`) viene copiato nella cartella `backup/` accanto al file dei dati (quindi `data/backup/`) come `utenti_AAAA-MM-GGTHH-MM-SS.json.bak` o `sostitutivi_AAAA-MM-GGTHH-MM-SS.json.bak` (per esempio `data/backup/utenti_2026-09-26T18-08-22.json.bak`); la cartella viene creata se manca. I backup più vecchi di 1 anno vengono eliminati automaticamente (costante `GIORNI_BACKUP` in `src/editor.py`).
 
@@ -184,6 +184,7 @@ Un elenco di schede sostitutivi:
 - `data_inizio` è in formato `aaaa-mm-gg`; la fine (il primo martedì) si calcola da sola.
 - Le quantità sono numeri (anche decimali, con il punto), espressi nell'`unita` indicata (default `mg`).
 - `variazioni` associa a un giorno le quantità diverse da quella standard, per orario. Le variazioni fuori dal periodo o uguali alla quantità standard vengono tolte al salvataggio.
+- `paziente` deve coincidere con il nome di un paziente di `utenti.json` (l'editor lo controlla al salvataggio).
 - Lo stesso paziente può avere più schede (farmaci o settimane diverse).
 
 ## Struttura del progetto

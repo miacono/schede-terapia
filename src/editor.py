@@ -112,6 +112,15 @@ def completa(u):
     return u
 
 
+def pazienti_mancanti(schede, utenti):
+    """Errore se una scheda sostitutivi indica un paziente che non c'è nelle schede terapia, altrimenti None."""
+    nomi = {str(u.get("paziente") or "").strip().casefold() for u in utenti if isinstance(u, dict)}
+    for s in schede:
+        if s["paziente"].strip().casefold() not in nomi:
+            return f"{s['paziente'].strip()}: il paziente non c'è nelle schede farmaci (aggiungilo lì o sceglilo dall'elenco)"
+    return None
+
+
 def cartella_backup(json_path):
     return json_path.parent / CARTELLA_BACKUP
 
@@ -323,10 +332,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             voci = self._body()
             errore = controlla(voci)
+            if not errore and percorso == self.sost_path:
+                errore = pazienti_mancanti(voci, leggi_json(self.json_path))
             if errore:
                 return self._err(400, errore)
             voci = [normalizza(v) for v in voci]
-        except (ValueError, json.JSONDecodeError) as e:
+        except (ValueError, json.JSONDecodeError) as e:  # UnicodeDecodeError è un ValueError
             return self._err(400, str(e))
         try:
             backup = salva_json(percorso, voci)
