@@ -77,7 +77,7 @@ Dalla scheda *Sostitutivi* si può:
 - creare, cercare ed eliminare schede sostitutivi, scegliendo l'utente da un menu a tendina;
 - indicare farmaco, quantità iniziale, unità di misura e data di inizio: la fine (il martedì) si calcola da sola;
 - modificare gli orari (predefiniti 08.30, 13.00, 18.00, 23.00; si possono scrivere anche col punto) e la quantità standard di ciascuno;
-- cambiare la quantità di un singolo giorno nella tabella *giorno per giorno*, che mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
+- cambiare la quantità di un orario da un certo giorno in poi nella tabella *giorno per giorno*: i giorni successivi ripetono la nuova quantità. La tabella mostra totale e saldo di ogni giorno e avvisa se la quantità iniziale non basta o avanza;
 - creare con un clic la scheda della **settimana successiva**, con gli stessi orari e quantità;
 - **generare il PDF** delle schede scelte.
 
@@ -129,7 +129,7 @@ Le fasce **Mattino, Pranzo, Cena e Notte** vengono sempre stampate, anche vuote,
 
 Oltre alle schede terapia, il programma gestisce le **schede sostitutivi**: il foglio firme di un farmaco sostitutivo consegnato in quantità fissa, con il saldo che scala a ogni somministrazione. I dati stanno in un file separato, `data/sostitutivi.json` (esempio: `data/sostitutivi.json.template`).
 
-Per ogni scheda si indicano utente, farmaco, unità di misura, quantità iniziale, data di inizio e gli **orari** con la quantità di ciascuno (predefiniti 08:30, 13:00, 18:00 e 23:00, modificabili). La scheda **finisce sempre di martedì**: va dalla data di inizio al primo martedì (compreso; se l'inizio è di martedì, la scheda dura un giorno). Per ogni giorno si può cambiare la quantità di un orario (*variazioni*), senza toccare gli altri giorni.
+Per ogni scheda si indicano utente, farmaco, unità di misura, quantità iniziale, data di inizio e gli **orari** con la quantità di ciascuno (predefiniti 08:30, 13:00, 18:00 e 23:00, modificabili). La scheda **finisce sempre di martedì**: va dalla data di inizio al primo martedì (compreso; se l'inizio è di martedì, la scheda dura un giorno). Da un giorno qualsiasi si può cambiare la quantità di un orario (*variazioni*): la nuova quantità vale da quel giorno in poi, finché non la si cambia di nuovo.
 
 Il PDF ha una pagina per scheda (di più solo se gli orari sono molti): per ogni giorno e orario la quantità (`--` se nulla), lo spazio per la firma dell'operatore e dell'utente e il saldo rimasto. Un saldo negativo, cioè una quantità iniziale che non basta, è stampato in grassetto.
 
@@ -188,7 +188,7 @@ Un elenco di schede sostitutivi:
 
 - `data_inizio` è in formato `aaaa-mm-gg`; la fine (il primo martedì) si calcola da sola.
 - Le quantità sono numeri (anche decimali, con il punto), espressi nell'`unita` indicata (default `mg`).
-- `variazioni` associa a un giorno le quantità diverse da quella standard, per orario. Le variazioni fuori dal periodo o uguali alla quantità standard vengono tolte al salvataggio.
+- `variazioni` associa a un giorno le nuove quantità, per orario: ciascuna vale da quel giorno in poi, finché un'altra variazione dello stesso orario non la cambia. Nell'esempio, alle 08:30 si danno 5 ml fino a venerdì e 7,5 ml da sabato 14 in poi. Le variazioni fuori dal periodo o che non cambiano la quantità in vigore vengono tolte al salvataggio.
 - `utente` deve coincidere con il nome di un utente di `utenti.json` (l'editor lo controlla al salvataggio).
 - Lo stesso utente può avere più schede (farmaci o settimane diverse).
 

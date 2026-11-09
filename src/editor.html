@@ -102,6 +102,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   table.piano th, table.piano td { border: 1px solid var(--line); padding: 3px; text-align: center; }
   table.piano th { color: var(--muted); font-weight: 600; white-space: nowrap; }
   table.piano input { width: 64px; padding: 4px; text-align: center; }
+  table.piano input.ereditato { border: 1px dashed var(--warn); }
   table.piano input.variato { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, var(--bg)); font-weight: 600; }
   table.piano td.negativo { color: var(--danger); font-weight: 600; }
 </style>
@@ -532,19 +533,41 @@ function periodoS(s) {
 
 function orariValidi(s) { return s.orari.filter((o) => normalizzaOrario(o.orario)).sort((a, b) => minuti(a.orario) - minuti(b.orario)); }
 
-function quantitaDel(s, giorno, o) {
-  const v = (s.variazioni || {})[isoData(giorno)];
-  return v && o.orario in v ? v[o.orario] : o.quantita;
+// Quantità in vigore giorno per giorno per l'orario o: [{iso, quantita, cambio}].
+// Si parte dalla quantità standard; una variazione vale dal suo giorno in poi (cambio = true quel giorno).
+function andamento(s, o) {
+  let q = o.quantita;
+  return periodoS(s).map((g) => {
+    const iso = isoData(g);
+    const v = (s.variazioni || {})[iso];
+    const cambio = !!v && o.orario in v && v[o.orario] !== q;
+    if (v && o.orario in v) q = v[o.orario];
+    return { iso, quantita: q, cambio };
+  });
+}
+
+// toglie le variazioni che non cambiano la quantità in vigore (come completa() in Python)
+function pulisciVariazioni(s) {
+  const attuale = Object.fromEntries(s.orari.map((o) => [o.orario, o.quantita]));
+  const nuove = {};
+  for (const g of periodoS(s)) {
+    const iso = isoData(g);
+    const utili = {};
+    for (const [k, q] of Object.entries((s.variazioni || {})[iso] || {})) if (k in attuale && q !== attuale[k]) utili[k] = attuale[k] = q;
+    if (Object.keys(utili).length) nuove[iso] = utili;
+  }
+  s.variazioni = nuove;
 }
 
 // [{giorno, righe: [{orario, standard, quantita, saldo}], totale, saldo}]
 function pianoS(s) {
   let saldo = Number(s.quantita_iniziale) || 0;
   const orari = orariValidi(s);
-  return periodoS(s).map((giorno) => {
+  const andamenti = new Map(orari.map((o) => [o, andamento(s, o)]));
+  return periodoS(s).map((giorno, i) => {
     let totale = 0;
     const righe = orari.map((o) => {
-      const q = Number(quantitaDel(s, giorno, o)) || 0;
+      const q = Number(andamenti.get(o)[i].quantita) || 0;
       totale += q;
       saldo = Math.round((saldo - q) * 1000) / 1000;
       return { orario: o.orario, standard: o.quantita, quantita: q, saldo };
@@ -659,10 +682,10 @@ function disegnaSchedaS() {
     periodoBox,
     sconosciuto ? h("div", { class: "info err" }, "Questo utente non c'è nell'elenco utenti: sceglilo dal menu o aggiungilo dalla scheda Utenti.") : "",
     h("h3", {}, "Orari e quantità standard"),
-    h("p", { class: "vuoto", style: "margin-top:0" }, "La quantità di ogni orario vale per tutti i giorni, salvo le modifiche giorno per giorno qui sotto. Gli orari con quantità 0 vengono stampati con «--»."),
+    h("p", { class: "vuoto", style: "margin-top:0" }, "La quantità di ogni orario vale dal primo giorno, salvo le modifiche giorno per giorno qui sotto. Gli orari con quantità 0 vengono stampati con «--»."),
     elencoOrari(s, aggiorna),
     h("h3", {}, "Somministrazione giorno per giorno"),
-    h("p", { class: "vuoto", style: "margin-top:0" }, "Cambia una cella per modificare la quantità solo per quel giorno; le celle modificate sono evidenziate. Svuota la cella per tornare alla quantità standard."),
+    h("p", { class: "vuoto", style: "margin-top:0" }, "Cambia una cella per modificare la quantità da quel giorno in poi: i giorni successivi la ripetono, finché non la cambi di nuovo. Le celle dove inizia una modifica sono evidenziate, quelle che la ripetono hanno il bordo tratteggiato. Svuota una cella evidenziata per togliere la modifica."),
     pianoBox);
   aggiorna();
 }
@@ -721,24 +744,27 @@ function disegnaPiano(s, box) {
   const piano = pianoS(s);
   const orari = orariValidi(s);
   if (!piano.length || !orari.length) { box.append(h("div", { class: "vuoto" }, "Indica la data di inizio e almeno un orario valido.")); return; }
-  const cella = (giorno, o) => {
-    const iso = isoData(giorno);
-    const q = quantitaDel(s, giorno, o);
-    return h("td", {}, h("input", { type: "number", min: "0", step: "any", value: q, class: q !== o.quantita ? "variato" : "",
-      title: `Standard: ${qtaStr(o.quantita)} ${s.unita || "mg"}`,
+  const unita = s.unita || "mg";
+  const cella = (i, o, and) => {
+    const { iso, quantita: q, cambio } = and[i];
+    const prima = i ? and[i - 1].quantita : o.quantita; // quantità in vigore il giorno prima
+    return h("td", {}, h("input", { type: "number", min: "0", step: "any", value: q,
+      class: cambio ? "variato" : q !== o.quantita ? "ereditato" : "",
+      title: cambio ? `Modificata da questo giorno (prima: ${qtaStr(prima)} ${unita})` : `Standard: ${qtaStr(o.quantita)} ${unita}`,
       onchange: (e) => {
         s.variazioni = s.variazioni || {};
-        const v = e.target.value === "" ? o.quantita : Number(e.target.value);
+        const v = e.target.value === "" ? prima : Number(e.target.value);
         const giornata = s.variazioni[iso] || {};
-        if (v === o.quantita) delete giornata[o.orario]; else giornata[o.orario] = v;
+        if (v === prima) delete giornata[o.orario]; else giornata[o.orario] = v;
         if (Object.keys(giornata).length) s.variazioni[iso] = giornata; else delete s.variazioni[iso];
+        pulisciVariazioni(s);
         modificaS(); disegnaPiano(s, box);
       } }));
   };
   box.append(h("div", { class: "scorre" }, h("table", { class: "piano" },
     h("thead", {}, h("tr", {}, h("th", {}, "Ora"), piano.map((g) => h("th", {}, GIORNI[g.giorno.getDay()], h("br"), breve(g.giorno))))),
     h("tbody", {},
-      orari.map((o) => h("tr", {}, h("th", {}, o.orario.replace(":", ".")), piano.map((g) => cella(g.giorno, o)))),
+      orari.map((o) => { const and = andamento(s, o); return h("tr", {}, h("th", {}, o.orario.replace(":", ".")), piano.map((_, i) => cella(i, o, and))); }),
       h("tr", {}, h("th", {}, "Totale"), piano.map((g) => h("td", {}, qtaStr(g.totale)))),
       h("tr", {}, h("th", {}, "Saldo"), piano.map((g) => h("td", { class: g.saldo < 0 ? "negativo" : "" }, qtaStr(g.saldo))))))));
 

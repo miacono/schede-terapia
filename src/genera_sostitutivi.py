@@ -83,16 +83,20 @@ def numero(v):
 
 def piano(scheda):
     """Elenco di (giorno, [(orario, quantità, saldo dopo la somministrazione)]).
-    La quantità di un orario è quella standard, salvo una variazione per quel giorno."""
+    Ogni orario parte dalla quantità standard; una variazione vale dal suo giorno in poi,
+    finché un'altra variazione dello stesso orario non la cambia di nuovo."""
     orari = sorted(scheda["orari"], key=lambda o: minuti(o["orario"]))
     variazioni = scheda.get("variazioni") or {}
+    attuale = {o["orario"]: o["quantita"] for o in orari}
     saldo = scheda["quantita_iniziale"]
     righe = []
     for g in periodo(scheda):
-        del_giorno = variazioni.get(g.isoformat(), {})
+        for orario, q in variazioni.get(g.isoformat(), {}).items():
+            if hhmm(orario) in attuale:
+                attuale[hhmm(orario)] = q
         somm = []
         for o in orari:
-            q = del_giorno.get(o["orario"], o["quantita"])
+            q = attuale[o["orario"]]
             saldo = round(saldo - q, 3)  # niente residui tipo 0.30000000000000004
             somm.append((o["orario"], q, saldo))
         righe.append((g, somm))
@@ -159,20 +163,23 @@ def valida(schede):
 
 def completa(s):
     """Normalizza una scheda già validata: toglie spazi e le variazioni che non servono più
-    (fuori dal periodo, per orari tolti o uguali alla quantità standard)."""
+    (fuori dal periodo, per orari tolti o che non cambiano la quantità in vigore quel giorno)."""
     s = dict(s)
     s["utente"] = s["utente"].strip()
     s["farmaco"] = s["farmaco"].strip()
     s["unita"] = (s.get("unita") or "").strip() or "mg"
     s["orari"] = sorted(({"orario": hhmm(o["orario"]), "quantita": o["quantita"]} for o in s["orari"]),
                         key=lambda o: minuti(o["orario"]))
-    standard = {o["orario"]: o["quantita"] for o in s["orari"]}
-    giorni = {g.isoformat() for g in periodo(s)}
+    attuale = {o["orario"]: o["quantita"] for o in s["orari"]}
+    originali = s.get("variazioni") or {}
     variazioni = {}
-    for giorno, quantita in sorted((s.get("variazioni") or {}).items()):
-        utili = {hhmm(k): v for k, v in quantita.items() if hhmm(k) in standard and v != standard[hhmm(k)]}
-        if giorno in giorni and utili:
-            variazioni[giorno] = utili
+    for g in periodo(s):
+        utili = {}
+        for k, v in originali.get(g.isoformat(), {}).items():
+            if hhmm(k) in attuale and v != attuale[hhmm(k)]:
+                utili[hhmm(k)] = attuale[hhmm(k)] = v
+        if utili:
+            variazioni[g.isoformat()] = utili
     s["variazioni"] = variazioni
     return s
 
